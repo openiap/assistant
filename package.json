@@ -1,0 +1,41 @@
+{
+  "name": "electron-quick-start-typescript",
+  "version": "1.0.0",
+  "description": "A minimal Electron application written with Typescript",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "lint": "eslint -c .eslintrc --ext .ts ./src",
+    "start": "npm run build && electron ./dist/main.js",
+    "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
+    "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
+    "updateagentdev": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
+    "updateagent": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent"
+  },
+  "repository": "https://github.com/electron/electron-quick-start-typescript",
+  "keywords": [
+    "Electron",
+    "quick",
+    "start",
+    "tutorial",
+    "demo",
+    "typescript"
+  ],
+  "author": "GitHub",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.0",
+    "@types/tar": "^6.1.4",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "electron": "^22.2.0",
+    "eslint": "^7.32.0",
+    "typescript": "^4.8.3"
+  },
+  "dependencies": {
+    "@openiap/nodeagent": "file:../nodeagent",
+    "@openiap/nodeapi": "github:openiap/nodeapi",
+    "adm-zip": "^0.5.10",
+    "tar": "^6.1.13"
+  }
+}

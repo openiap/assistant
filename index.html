@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+  />
+  <meta
+    http-equiv="X-Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+  />
+      <title>OpenIAP node Agent</title>
+  </head>
+  <body>
+    <style>
+      #errorstatus {
+        color: darkred;
+      }
+      pre {
+        overflow: auto;
+        white-space: pre-wrap;
+        display: none;
+      }
+      pre.collapsed {
+        height: 20em;
+      }
+      pre.expanded {
+        height: auto;
+      }
+    </style>
+    <div id="setupconnection">
+      <h1>OpenIAP node Agent</h1>
+      <p>What openiap flow system do you want to connect to ?</p>
+      <input type="text" id="setupurl" value="https://app.openiap.io" />
+      <input type="button" id="setupconnect" value="Connect" />
+    </div>
+    <div id="listpackages">
+      <button id="clearcache">Clear cache</button> | <button href id="signout">Signout</button>
+      <p id="serverstatus">... initializing ...</p>
+      <p id="errorstatus"></p>
+      <p id="info"></p>
+    </div>
+    <ul id="packages">
+    </ul>
+    <ul id="output">
+    </ul>
+  </body>
+  <script src="./dist/renderer.js"></script>
+</html>
+
+
