@@ -1,52 +1,53 @@
 import { openiap, config, QueueEvent } from "@openiap/nodeapi";
 import { app, BrowserWindow, ipcMain } from "electron";
+import { Stream } from 'stream';
 import { uitools } from "./uitools"
-// import { runner  } from "@openiap/nodeagent";
-import { runner  } from "./runner";
-import { packages } from "./packages"
+import { runner, packagemanager } from "@openiap/nodeagent";
+// import { runner  } from "./runner";
+// import { packages } from "./packages"
 import * as os from "os"
 import * as path from "path";
 import * as fs from "fs"
 import * as http from "http"
 import * as https from "https"
-const client:openiap = new openiap()
+const client: openiap = new openiap()
 let localqueue = "";
 let agentid = process.env.agentid;
 var languages = ["nodejs"];
-var assistentConfig: any = {"apiurl": "wss://app.openiap.io", jwt: "", agentid: ""};
+var assistentConfig: any = { "apiurl": "wss://app.openiap.io", jwt: "", agentid: "" };
 function init() {
   // var client = new openiap();
   config.doDumpStack = true
-  if(fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
+  if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
     assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
     process.env["NODE_ENV"] = "production";
-    if(assistentConfig.apiurl) {
+    if (assistentConfig.apiurl) {
       process.env["apiurl"] = assistentConfig.apiurl;
       client.url = assistentConfig.apiurl;
     }
-    if(assistentConfig.jwt) {
+    if (assistentConfig.jwt) {
       process.env["jwt"] = assistentConfig.jwt;
       client.jwt = assistentConfig.jwt;
     }
-    if(assistentConfig.agentid != null && assistentConfig.agentid != "") {
+    if (assistentConfig.agentid != null && assistentConfig.agentid != "") {
       agentid = assistentConfig.agentid;
     }
   }
   try {
-    var pypath = packages.findPythonPath();
-    if(pypath != null && pypath != "") {
+    var pypath = runner.findPythonPath();
+    if (pypath != null && pypath != "") {
       languages.push("python");
     }
   } catch (error) {
-    
+
   }
   try {
-    var pypath = packages.findDotnetPath();
-    if(pypath != null && pypath != "") {
+    var pypath = runner.findDotnetPath();
+    if (pypath != null && pypath != "") {
       languages.push("dotnet");
     }
   } catch (error) {
-    
+
   }
 
   client.onConnected = onConnected
@@ -54,27 +55,27 @@ function init() {
   uitools.notifyServerStatus('connecting', null, "");
   client.connect();
 }
-function get(url:string) {
+function get(url: string) {
   return new Promise<string>((resolve, reject) => {
     var provider = http;
     if (url.startsWith("https")) {
       // @ts-ignore
       provider = https;
     }
-    provider.get(url, (resp:any) => {
+    provider.get(url, (resp: any) => {
       let data = "";
-      resp.on("data", (chunk:any) => {
+      resp.on("data", (chunk: any) => {
         data += chunk;
       });
       resp.on("end", () => {
         resolve(data);
       });
-    }).on("error", (err:any) => {
+    }).on("error", (err: any) => {
       reject(err);
     });
   })
 }
-function post(jwt:string, agent: any, url:string, body: any) {
+function post(jwt: string, agent: any, url: string, body: any) {
   return new Promise<string>((resolve, reject) => {
     try {
       var provider = http;
@@ -91,7 +92,7 @@ function post(jwt:string, agent: any, url:string, body: any) {
           "Content-Length": Buffer.byteLength(body)
         }
       };
-      if(agent == null) {
+      if (agent == null) {
         delete options.agent;
       }
       if (jwt != null && jwt != "") {
@@ -103,7 +104,7 @@ function post(jwt:string, agent: any, url:string, body: any) {
         // @ts-ignore
         provider = https;
       }
-      var req = provider.request(url, options, (res:any) => {
+      var req = provider.request(url, options, (res: any) => {
         var o = options;
         var b = body;
         res.setEncoding("utf8");
@@ -111,7 +112,7 @@ function post(jwt:string, agent: any, url:string, body: any) {
           return reject(new Error("HTTP Error: " + res.statusCode + " " + res.statusMessage));
         }
         var _body = "";
-        res.on("data", (chunk:any) => {
+        res.on("data", (chunk: any) => {
           _body += chunk;
         });
         res.on("end", () => {
@@ -131,36 +132,36 @@ function post(jwt:string, agent: any, url:string, body: any) {
 async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: string) {
   uitools.log("onQueueMessage");
   uitools.log(payload);
-  if(user == null || jwt == null || jwt == "") {
-    return {"command": "error", error:"not authenticated"};
+  if (user == null || jwt == null || jwt == "") {
+    return { "command": "error", error: "not authenticated" };
   }
-  if(payload.command == "start") {
-    var packagepath = packages.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.packageid));
-    if(packagepath == "") {
+  if (payload.command == "start") {
+    var packagepath = packagemanager.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.packageid));
+    if (packagepath == "") {
       uitools.log("package not found");
-      return {"command": "error", error:"package not found"};
+      return { "command": "error", error: "package not found" };
     }
 
-    var scriptpath = packages.getscriptpath(packagepath);
-    if(scriptpath == "") {
+    var scriptpath = packagemanager.getscriptpath(packagepath);
+    if (scriptpath == "") {
       uitools.log("script not found");
-      return {"command": "error", error:"script not found"};
+      return { "command": "error", error: "script not found" };
     }
     const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    var pythonpath = packages.findPythonPath();
-    if(pythonpath != null) {
-      await packages.pipinstall(packagepath, streamid, pythonpath);
+    var pythonpath = runner.findPythonPath();
+    if (pythonpath != null) {
+      await runner.pipinstall(packagepath, streamid, pythonpath);
     }
-    await packages.npminstall(packagepath, streamid);
-    await packages.runit(packagepath, streamid, scriptpath, true);
+    await runner.npminstall(packagepath, streamid);
+    await runner.runit(packagepath, streamid, scriptpath, true);
   }
 }
-async function onConnected(client:openiap)  {
+async function onConnected(client: openiap) {
   var u = new URL(client.url);
   try {
     uitools.log('connected');
     uitools.setTitle("OpenIAP Agent - " + u.hostname)
-    if(client.client != null && client.client.user != null ) {
+    if (client.client != null && client.client.user != null) {
       uitools.notifyServerStatus('connected', client.client.user, u.hostname);
     } else {
       uitools.log('connected, but not signed in, close connection again');
@@ -168,13 +169,15 @@ async function onConnected(client:openiap)  {
       return client.Close();
     }
     process.env.apiurl = client.url;
-    var data = JSON.stringify({hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "chrome": true, "chromium": true, "maxpackages": 50})
-    var res:any = await client.CustomCommand({ id: agentid, command:"registeragent", 
-    data});
-    if(res != null)  res = JSON.parse(res);
-    if(res != null && res.queue != "" && res._id != null && res._id != "") {
-      localqueue = await client.RegisterQueue({queuename: res.queue}, onQueueMessage);
-      if(agentid != res._id || (res.jwt != null && res.jwt != "")) {
+    var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "chrome": true, "chromium": true, "maxpackages": 50 })
+    var res: any = await client.CustomCommand({
+      id: agentid, command: "registeragent",
+      data
+    });
+    if (res != null) res = JSON.parse(res);
+    if (res != null && res.queue != "" && res._id != null && res._id != "") {
+      localqueue = await client.RegisterQueue({ queuename: res.queue }, onQueueMessage);
+      if (agentid != res._id || (res.jwt != null && res.jwt != "")) {
         agentid = res._id
         var config = require(path.join(os.homedir(), ".openiap", "config.json"));
         config.agentid = agentid
@@ -183,95 +186,95 @@ async function onConnected(client:openiap)  {
         fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
       }
     }
-    if(res.jwt != null && res.jwt != "") {
-      await client.Signin({jwt: res.jwt});
+    if (res.jwt != null && res.jwt != "") {
+      await client.Signin({ jwt: res.jwt });
       uitools.notifyServerStatus('connected', client.client.user, u.hostname);
     }
-    var _packages = await client.Query<any>({query: {"_type": "package", "language": {"$in": languages}}, collectionname: "agents"});
-    if(_packages != null) {
-      for(var i = 0; i < _packages.length; i++) {
+    var _packages = await client.Query<any>({ query: { "_type": "package", "language": { "$in": languages } }, collectionname: "agents" });
+    if (_packages != null) {
+      for (var i = 0; i < _packages.length; i++) {
         try {
-          if(fs.existsSync(path.join(packages.getpackagefolder(), _packages[i]._id))) continue;
-          if(_packages[i].fileid != null && _packages[i].fileid != "") {
-            await packages.getpackage(client, _packages[i].fileid, _packages[i]._id);
+          if (fs.existsSync(path.join(packagemanager.packagefolder, _packages[i]._id))) continue;
+          if (_packages[i].fileid != null && _packages[i].fileid != "") {
+            await packagemanager.getpackage(client, _packages[i].fileid, _packages[i]._id);
           }
         } catch (error) {
-          console.error(error);      
+          console.error(error);
         }
       }
       uitools.notifyPackages(_packages);
-    }  
+    }
   } catch (error) {
     uitools.log(JSON.stringify(error))
     var message = error.message.split("\"").join("");
     uitools.notifyServerStatus("onConnected error: " + message, client?.client?.user, u.hostname);
     uitools.notifyServerStatus('disconnected', null, "");
     try {
-      client.Close();  
+      client.Close();
     } catch (error) {
     }
-  }  
+  }
 };
-async function onDisconnected(client:openiap)  {
+async function onDisconnected(client: openiap) {
   uitools.log('disconnected');
   uitools.notifyServerStatus('disconnected', null, "");
 };
 app.whenReady().then(() => {
-  uitools.createWindow();  
+  uitools.createWindow();
   init();
   uitools.notifyConfig(assistentConfig);
-  ipcMain.handle('ping', (sender) => { 
+  ipcMain.handle('ping', (sender) => {
     return 'pong';
   });
   ipcMain.handle('clear-cache', async (sender) => {
-    if(packages.getstreams().length > 0) throw new Error("Cannot clear cache while streams are running");
-    packages.deleteDirectoryRecursiveSync(packages.getpackagefolder());
+    if (runner.streams.length > 0) throw new Error("Cannot clear cache while streams are running");
+    packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder);
     onConnected(client)
   });
   ipcMain.handle('signout', async (sender) => {
-    if(packages.getstreams().length > 0) throw new Error("Cannot logout while streams are running");
-    packages.deleteDirectoryRecursiveSync(packages.getpackagefolder());
+    if (runner.streams.length > 0) throw new Error("Cannot logout while streams are running");
+    packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder);
     client.Close();
     client.jwt = "";
-    if(fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
+    if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
       var config = require(path.join(os.homedir(), ".openiap", "config.json"));
       config.jwt = ""
       fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
     }
     uitools.notifyServerStatus('disconnected', null, "");
   });
-  ipcMain.handle('setup-connect', async (sender, url) => { 
+  ipcMain.handle('setup-connect', async (sender, url) => {
     var tokenkey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    var u:URL = new URL(url);
+    var u: URL = new URL(url);
     var host = u.host;
-    if(host.startsWith("grpc.")) host = host.substring(5);
+    if (host.startsWith("grpc.")) host = host.substring(5);
     var addtokenurl = u.protocol + "//" + host + "/AddTokenRequest";
     var gettokenurl = u.protocol + "//" + host + "/GetTokenRequest?key=" + tokenkey;
     var signinurl = u.protocol + "//" + host + "/login?key=" + tokenkey;
-    var result = await post(null, null, addtokenurl, JSON.stringify({key: tokenkey}));
+    var result = await post(null, null, addtokenurl, JSON.stringify({ key: tokenkey }));
     var res = JSON.parse(result)
     const id = setInterval(async () => {
       var result = await get(gettokenurl);
       var res = JSON.parse(result)
-      if(res.jwt != "" && res.jwt != null) {
+      if (res.jwt != "" && res.jwt != null) {
         try {
           clearInterval(id);
           client.jwt = res.jwt;
           process.env["jwt"] = res.jwt;
-          if(u.protocol == "https:") {
+          if (u.protocol == "https:") {
             client.url = "wss://" + host + "/ws/v2";
           } else {
             client.url = "ws://" + host + "/ws/v2";
           }
-          assistentConfig = {apiurl: client.url, jwt: client.jwt}
-          if(fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
+          assistentConfig = { apiurl: client.url, jwt: client.jwt }
+          if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
             assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
             assistentConfig.apiurl = client.url;
             assistentConfig.jwt = client.jwt;
           }
-          if(!fs.existsSync(path.join(os.homedir(), ".openiap"))) fs.mkdirSync(path.join(os.homedir(), ".openiap"));
-          fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(assistentConfig));          
-          if(client.connected) client.Close();
+          if (!fs.existsSync(path.join(os.homedir(), ".openiap"))) fs.mkdirSync(path.join(os.homedir(), ".openiap"));
+          fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(assistentConfig));
+          if (client.connected) client.Close();
           uitools.notifyConfig(assistentConfig);
           uitools.notifyServerStatus('connecting', null, u.hostname);
           client.connect();
@@ -283,12 +286,24 @@ app.whenReady().then(() => {
     require('electron').shell.openExternal(signinurl);
     return signinurl;
   });
-  ipcMain.handle('stop-package', async (sender, streamid) => { 
+  ipcMain.handle('stop-package', async (sender, streamid) => {
     uitools.log('stop package ' + streamid);
-    packages.kill(streamid);
+    runner.kill(streamid);
   });
-  ipcMain.handle('open-package', async (sender, id, streamid) => { 
-    runner.runpackage(id, streamid, false);
+  ipcMain.handle('run-package', async (sender, id, streamid) => {
+    //var stream = new Stream.Readable();
+    var stream = new Stream.Readable({
+      read(size) { }
+    });
+    // @ts-ignore
+    stream.test = "findme"
+    stream.push("test data"); // push some data onto the stream
+    // stream.push(null); // signal the end of the stream
+    stream.on('data', (data) => {
+      uitools.notifyStream(streamid, data);
+    });
+    runner.addstream(streamid, stream);
+    await packagemanager.runpackage(id, streamid, false);
   });
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) uitools.createWindow();

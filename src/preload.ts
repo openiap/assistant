@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld('versions', {
 })
 
 contextBridge.exposeInMainWorld('app', {
-  openPackage: (id:string, streamid:string) => ipcRenderer.invoke('open-package', id, streamid),
+  runPackage: (id:string, streamid:string) => ipcRenderer.invoke('run-package', id, streamid),
   stopPackage: (streamid:string) => ipcRenderer.invoke('stop-package', streamid),
   setupConnect: (url:string) => ipcRenderer.invoke('setup-connect', url),
   Signout: () => ipcRenderer.invoke('signout'),

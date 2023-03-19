@@ -10,7 +10,6 @@ const clearcache = document.getElementById("clearcache")
 clearcache.onclick = async function() {
     try {
         updateErrorStatus()
-        console.log("clear cache")
         await app.clearCache();
         clearAllOutput()
     } catch (error) {
@@ -31,7 +30,6 @@ setupconnect.onclick = async function() {
         updateErrorStatus()
         var url = (setupurl as any).value;
         var loginurl = await app.setupConnect(url);
-        console.log(loginurl)
     } catch (error) {
         updateErrorStatus("Error: " + error.message)
         console.error(error);        
@@ -68,7 +66,6 @@ function updateErrorStatus(status:string = "") {
 function updateServerStatus(status:string, user:any, hostname:string) {
     const div = document.getElementById("serverstatus")
     div.innerText = status
-    console.log(user)
     console.log("Server status:", status);
     if(status == "connected") {
         signout.innerText = "Sign out " + user?.username;
@@ -79,7 +76,7 @@ function updateServerStatus(status:string, user:any, hostname:string) {
         listpackages.style.display = "none";
     }
 }
-function openPackage(packageid:string) {
+function runPackage(packageid:string) {
     try {
         updateErrorStatus()
         // generate unique id for stream
@@ -120,8 +117,7 @@ function openPackage(packageid:string) {
         li.appendChild(pre);
         outputul.insertBefore(li, outputul.firstChild);
 
-        console.log("open package", packageid);
-        app.openPackage(packageid, streamid);
+        app.runPackage(packageid, streamid);
         togglebutton.onclick(null);
     } catch (error) {
         updateErrorStatus("Error: " + error.message)
@@ -147,7 +143,6 @@ function updateStream(id:string, byteArray: any) {
     if(streams[id] == null) streams[id] = [];
     streams[id] = streams[id].concat(bytes);
 
-    console.log("Recevied data for " + id, byteArray);
     const outputul = document.getElementById(id)
     if(outputul == null) return;
     const decoder = new TextDecoder("utf-8");
@@ -183,7 +178,7 @@ function updatePackages(json:string) {
         }
         const _id = packages[i]._id
         a.onclick = function() {
-            openPackage(_id);
+            runPackage(_id);
         }
         li.appendChild(a);
         ul_packages.appendChild(li);

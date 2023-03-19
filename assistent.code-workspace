@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../assistent"
+		},
+		{
+			"path": "../nodeagent"
+		}
+	],
+	"settings": {}
+}
