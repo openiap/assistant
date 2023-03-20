@@ -5,6 +5,7 @@ declare const versions: any;
 declare const app: any;
 const information = document.getElementById("info")
 information.innerText = `This app is using Chrome (v${versions.chrome()}), Node.js (v${versions.node()}), and Electron (v${versions.electron()})`
+var packagelist: any[] = [];
 
 const clearcache = document.getElementById("clearcache")
 clearcache.onclick = async function() {
@@ -83,10 +84,12 @@ function runPackage(packageid:string) {
         const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         if(streams[streamid] == null) streams[streamid] = [];
 
+        var package = packagelist.find(p => p._id == packageid);
+
         const outputul = document.getElementById("output")
         const span = document.createElement("span");
         const pre = document.createElement("pre");
-        span.innerText = "Package " + packageid + " output:";
+        span.innerText = package.name;
         const killbutton = document.createElement("button");
         killbutton.id = "kill" + streamid;
         killbutton.innerText = "kill";
@@ -162,21 +165,21 @@ function updateConfig(config:any) {
     }
 }
 function updatePackages(json:string) {
-    var packages = JSON.parse(json);
+    packagelist = JSON.parse(json);
     const ul_packages = document.getElementById("packages")
     clearPackageList()
-    for(var i = 0; i < packages.length; i++) {
+    for(var i = 0; i < packagelist.length; i++) {
         var li = document.createElement("li");
         var a = document.createElement("a");
         a.href = "#";
-        if(packages[i].language == "python") {
-            a.innerText = packages[i].name + " (Python)";
-        } else if(packages[i].language == "nodejs") {
-            a.innerText = packages[i].name + " (Node.js)";
+        if(packagelist[i].language == "python") {
+            a.innerText = packagelist[i].name + " (Python)";
+        } else if(packagelist[i].language == "nodejs") {
+            a.innerText = packagelist[i].name + " (Node.js)";
         } else {
-            a.innerText = packages[i].name + " (" + packages[i].language + ")";
+            a.innerText = packagelist[i].name + " (" + packagelist[i].language + ")";
         }
-        const _id = packages[i]._id
+        const _id = packagelist[i]._id
         a.onclick = function() {
             runPackage(_id);
         }

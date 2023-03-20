@@ -37,6 +37,10 @@ export class uitools {
   static notifyConfig(config: any) {
     this.mainWindow.webContents.executeJavaScript(`updateConfig('${JSON.stringify(config)}')`);
   }
+  static updateErrorStatus(message: string) {
+    this.mainWindow.webContents.executeJavaScript(`updateErrorStatus('${message}')`);
+  }
+  
   static log(message: Buffer | string) {
     let buffer = message;
     if (this.mainWindow == null) return;

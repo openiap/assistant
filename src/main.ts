@@ -15,9 +15,7 @@ let localqueue = "";
 let agentid = process.env.agentid;
 var languages = ["nodejs"];
 var assistentConfig: any = { "apiurl": "wss://app.openiap.io", jwt: "", agentid: "" };
-function init() {
-  // var client = new openiap();
-  config.doDumpStack = true
+function reloadAndParseConfig() {
   if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
     assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
     process.env["NODE_ENV"] = "production";
@@ -33,6 +31,11 @@ function init() {
       agentid = assistentConfig.agentid;
     }
   }
+}
+function init() {
+  // var client = new openiap();
+  config.doDumpStack = true
+  reloadAndParseConfig();
   try {
     var pypath = runner.findPythonPath();
     if (pypath != null && pypath != "") {
@@ -156,19 +159,25 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
     await runner.runit(packagepath, streamid, scriptpath, true);
   }
 }
-async function onConnected(client: openiap) {
-  var u = new URL(client.url);
-  try {
-    uitools.log('connected');
-    uitools.setTitle("OpenIAP Agent - " + u.hostname)
-    if (client.client != null && client.client.user != null) {
-      uitools.notifyServerStatus('connected', client.client.user, u.hostname);
-    } else {
-      uitools.log('connected, but not signed in, close connection again');
-      uitools.notifyServerStatus('disconnected', null, "");
-      return client.Close();
+async function reloadpackages() {
+  var _packages = await client.Query<any>({ query: { "_type": "package", "language": { "$in": languages } }, collectionname: "agents" });
+  if (_packages != null) {
+    for (var i = 0; i < _packages.length; i++) {
+      try {
+        if (fs.existsSync(path.join(packagemanager.packagefolder, _packages[i]._id))) continue;
+        if (_packages[i].fileid != null && _packages[i].fileid != "") {
+          await packagemanager.getpackage(client, _packages[i].fileid, _packages[i]._id);
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
-    process.env.apiurl = client.url;
+    uitools.notifyPackages(_packages);
+  }
+}
+async function RegisterAgent() {
+  try {
+    var u = new URL(client.url);
     var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "chrome": true, "chromium": true, "maxpackages": 50 })
     var res: any = await client.CustomCommand({
       id: agentid, command: "registeragent",
@@ -190,20 +199,47 @@ async function onConnected(client: openiap) {
       await client.Signin({ jwt: res.jwt });
       uitools.notifyServerStatus('connected', client.client.user, u.hostname);
     }
-    var _packages = await client.Query<any>({ query: { "_type": "package", "language": { "$in": languages } }, collectionname: "agents" });
-    if (_packages != null) {
-      for (var i = 0; i < _packages.length; i++) {
-        try {
-          if (fs.existsSync(path.join(packagemanager.packagefolder, _packages[i]._id))) continue;
-          if (_packages[i].fileid != null && _packages[i].fileid != "") {
-            await packagemanager.getpackage(client, _packages[i].fileid, _packages[i]._id);
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      }
-      uitools.notifyPackages(_packages);
+    reloadAndParseConfig();
+  } catch (error) {
+    uitools.updateErrorStatus("Error: " + error.message)
+    uitools.notifyServerStatus('disconnected', null, "");
+    process.env["apiurl"] = "";
+    process.env["jwt"] = "";
+    try {
+      client.Close();
+    } catch (error) {      
     }
+  }
+}
+async function onConnected(client: openiap) {
+  var u = new URL(client.url);
+  try {
+    uitools.log('connected');
+    uitools.setTitle("OpenIAP Agent - " + u.hostname)
+    if (client.client != null && client.client.user != null) {
+      uitools.notifyServerStatus('connected', client.client.user, u.hostname);
+    } else {
+      uitools.log('connected, but not signed in, close connection again');
+      uitools.notifyServerStatus('disconnected', null, "");
+      return client.Close();
+    }
+    process.env.apiurl = client.url;
+    await RegisterAgent()
+    await reloadpackages()
+    var watchid = await client.Watch({ paths: [], collectionname: "agents" }, async (operation: string, document: any) => {
+      try {
+        if (document._type == "package") {
+          await reloadpackages()
+        }
+        if (document._type == "agent" && document._id == agentid) {
+          await RegisterAgent()
+        }
+      } catch (error) {
+        console.error(error);
+        uitools.log(JSON.stringify(error))
+      }
+    });
+    console.log("watch registered with id", watchid);
   } catch (error) {
     uitools.log(JSON.stringify(error))
     var message = error.message.split("\"").join("");
@@ -229,7 +265,7 @@ app.whenReady().then(() => {
   ipcMain.handle('clear-cache', async (sender) => {
     if (runner.streams.length > 0) throw new Error("Cannot clear cache while streams are running");
     packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder);
-    onConnected(client)
+    reloadpackages()
   });
   ipcMain.handle('signout', async (sender) => {
     if (runner.streams.length > 0) throw new Error("Cannot logout while streams are running");
@@ -291,16 +327,14 @@ app.whenReady().then(() => {
     runner.kill(streamid);
   });
   ipcMain.handle('run-package', async (sender, id, streamid) => {
-    //var stream = new Stream.Readable();
     var stream = new Stream.Readable({
       read(size) { }
     });
-    // @ts-ignore
-    stream.test = "findme"
-    stream.push("test data"); // push some data onto the stream
-    // stream.push(null); // signal the end of the stream
     stream.on('data', (data) => {
       uitools.notifyStream(streamid, data);
+    });
+    stream.on('end', () => {
+      uitools.notifyStream(streamid, null);
     });
     runner.addstream(streamid, stream);
     await packagemanager.runpackage(id, streamid, false);
