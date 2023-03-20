@@ -11,6 +11,9 @@ import * as fs from "fs"
 import * as http from "http"
 import * as https from "https"
 const client: openiap = new openiap()
+client.agent = "assistent"
+var myproject = require(path.join(__dirname, "..", "package.json"));
+client.version = myproject.version;
 let localqueue = "";
 let agentid = process.env.agentid;
 var languages = ["nodejs"];
