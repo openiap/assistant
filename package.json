@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@openiap/nodeagent": "file:../nodeagent",
-    "@openiap/nodeapi": "github:openiap/nodeapi",
+    "@openiap/nodeapi": "^0.0.8",
     "adm-zip": "^0.5.10",
     "tar": "^6.1.13"
   }

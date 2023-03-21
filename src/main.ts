@@ -2,14 +2,13 @@ import { openiap, config, QueueEvent } from "@openiap/nodeapi";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { Stream } from 'stream';
 import { uitools } from "./uitools"
-import { runner, packagemanager } from "@openiap/nodeagent";
+import { runner, packagemanager, agenttools } from "@openiap/nodeagent";
 // import { runner  } from "./runner";
 // import { packages } from "./packages"
 import * as os from "os"
 import * as path from "path";
 import * as fs from "fs"
-import * as http from "http"
-import * as https from "https"
+process.env.log_with_colors = "false"
 const client: openiap = new openiap()
 client.agent = "assistent"
 var myproject = require(path.join(__dirname, "..", "package.json"));
@@ -17,7 +16,7 @@ client.version = myproject.version;
 let localqueue = "";
 let agentid = process.env.agentid;
 var languages = ["nodejs"];
-var assistentConfig: any = { "apiurl": "wss://app.openiap.io", jwt: "", agentid: "" };
+var assistentConfig: any = { "apiurl": "wss://app.openiap.io/ws/v2", jwt: "", agentid: "" };
 function reloadAndParseConfig() {
   if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
     assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
@@ -60,80 +59,6 @@ function init() {
   client.onDisconnected = onDisconnected
   uitools.notifyServerStatus('connecting', null, "");
   client.connect();
-}
-function get(url: string) {
-  return new Promise<string>((resolve, reject) => {
-    var provider = http;
-    if (url.startsWith("https")) {
-      // @ts-ignore
-      provider = https;
-    }
-    provider.get(url, (resp: any) => {
-      let data = "";
-      resp.on("data", (chunk: any) => {
-        data += chunk;
-      });
-      resp.on("end", () => {
-        resolve(data);
-      });
-    }).on("error", (err: any) => {
-      reject(err);
-    });
-  })
-}
-function post(jwt: string, agent: any, url: string, body: any) {
-  return new Promise<string>((resolve, reject) => {
-    try {
-      var provider = http;
-      var u = new URL(url);
-      var options = {
-        rejectUnauthorized: false,
-        agent: agent,
-        hostname: u.hostname,
-        port: u.port,
-        path: u.pathname,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(body)
-        }
-      };
-      if (agent == null) {
-        delete options.agent;
-      }
-      if (jwt != null && jwt != "") {
-        // @ts-ignore
-        options.headers["Authorization"] = "Bearer " + jwt;
-      }
-      if (url.startsWith("https")) {
-        delete options.agent;
-        // @ts-ignore
-        provider = https;
-      }
-      var req = provider.request(url, options, (res: any) => {
-        var o = options;
-        var b = body;
-        res.setEncoding("utf8");
-        if (res.statusCode != 200) {
-          return reject(new Error("HTTP Error: " + res.statusCode + " " + res.statusMessage));
-        }
-        var _body = "";
-        res.on("data", (chunk: any) => {
-          _body += chunk;
-        });
-        res.on("end", () => {
-          var r = res;
-          resolve(_body);
-        });
-      }
-      );
-      req.write(body);
-      req.end();
-
-    } catch (error) {
-      reject(error);
-    }
-  })
 }
 async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: string) {
   uitools.log("onQueueMessage");
@@ -187,16 +112,16 @@ async function RegisterAgent() {
       data
     });
     if (res != null) res = JSON.parse(res);
-    if (res != null && res.queue != "" && res._id != null && res._id != "") {
-      localqueue = await client.RegisterQueue({ queuename: res.queue }, onQueueMessage);
-      if (agentid != res._id || (res.jwt != null && res.jwt != "")) {
+    if (res != null && res.slug != "" && res._id != null && res._id != "") {
+      localqueue = await client.RegisterQueue({ queuename: res.slug }, onQueueMessage);
         agentid = res._id
         var config = require(path.join(os.homedir(), ".openiap", "config.json"));
         config.agentid = agentid
-        config.jwt = res.jwt
-        process.env.jwt = res.jwt
+        if(res.jwt != null && res.jwt != "") {
+          config.jwt = res.jwt
+          process.env.jwt = res.jwt
+        }  
         fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
-      }
     }
     if (res.jwt != null && res.jwt != "") {
       await client.Signin({ jwt: res.jwt });
@@ -232,14 +157,29 @@ async function onConnected(client: openiap) {
     var watchid = await client.Watch({ paths: [], collectionname: "agents" }, async (operation: string, document: any) => {
       try {
         if (document._type == "package") {
-          await reloadpackages()
-        }
-        if (document._type == "agent" && document._id == agentid) {
-          await RegisterAgent()
+          if(operation == "insert") {
+            console.log("package " + document.name + " inserted, reload packages");
+            await reloadpackages()
+          } else if(operation == "replace") {
+            console.log("package " + document.name + " updated, delete and reload");
+            packagemanager.removepackage(document._id);
+            await packagemanager.getpackage(client, document.fileid, document._id);
+          } else if (operation == "delete") {
+            console.log("package " + document.name + " deleted, cleanup after package");
+            packagemanager.removepackage(document._id);
+          }
+        } else if (document._type == "agent") {
+          if(document._id == agentid)  {
+            console.log("agent changed, reload config");
+            await RegisterAgent()
+          } else {
+            console.log("Another agent was changed, do nothing");
+          }        
+        } else {
+          console.log("unknown type " + document._type + " changed, do nothing");
         }
       } catch (error) {
         console.error(error);
-        uitools.log(JSON.stringify(error))
       }
     });
     console.log("watch registered with id", watchid);
@@ -290,10 +230,10 @@ app.whenReady().then(() => {
     var addtokenurl = u.protocol + "//" + host + "/AddTokenRequest";
     var gettokenurl = u.protocol + "//" + host + "/GetTokenRequest?key=" + tokenkey;
     var signinurl = u.protocol + "//" + host + "/login?key=" + tokenkey;
-    var result = await post(null, null, addtokenurl, JSON.stringify({ key: tokenkey }));
+    var result = await agenttools.post(null, null, addtokenurl, JSON.stringify({ key: tokenkey }));
     var res = JSON.parse(result)
     const id = setInterval(async () => {
-      var result = await get(gettokenurl);
+      var result = await agenttools.get(gettokenurl);
       var res = JSON.parse(result)
       if (res.jwt != "" && res.jwt != null) {
         try {
