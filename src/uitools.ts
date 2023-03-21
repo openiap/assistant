@@ -11,7 +11,7 @@ export class uitools {
       width: 800,
     });
     this.mainWindow.loadFile(path.join(__dirname, "../index.html"));
-    this.mainWindow.webContents.openDevTools();
+    // this.mainWindow.webContents.openDevTools();
     this.mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
       console.log(message + " " +sourceId+" ("+line+")");
     });
@@ -40,6 +40,10 @@ export class uitools {
   static updateErrorStatus(message: string) {
     this.mainWindow.webContents.executeJavaScript(`updateErrorStatus('${message}')`);
   }
+  static remoteRunPackage(packageid:string, streamid:string) {
+    this.mainWindow.webContents.executeJavaScript(`remoteRunPackage('${packageid}', '${streamid}')`);
+  }
+  
   
   static log(message: Buffer | string) {
     let buffer = message;

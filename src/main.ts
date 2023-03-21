@@ -61,30 +61,78 @@ function init() {
   client.connect();
 }
 async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: string) {
-  uitools.log("onQueueMessage");
-  uitools.log(payload);
-  if (user == null || jwt == null || jwt == "") {
-    return { "command": "error", error: "not authenticated" };
-  }
-  if (payload.command == "start") {
-    var packagepath = packagemanager.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.packageid));
-    if (packagepath == "") {
-      uitools.log("package not found");
-      return { "command": "error", error: "package not found" };
-    }
-
-    var scriptpath = packagemanager.getscriptpath(packagepath);
-    if (scriptpath == "") {
-      uitools.log("script not found");
-      return { "command": "error", error: "script not found" };
-    }
+  try {
     const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    var pythonpath = runner.findPythonPath();
-    if (pythonpath != null) {
-      await runner.pipinstall(packagepath, streamid, pythonpath);
+    if(payload != null && payload.payload != null) payload = payload.payload;
+    // console.log("onQueueMessage");
+    // console.log(payload);
+    if (user == null || jwt == null || jwt == "") {
+      return { "command": "error", error: "not authenticated" };
     }
-    await runner.npminstall(packagepath, streamid);
-    await runner.runit(packagepath, streamid, scriptpath, true);
+    var commandqueue = msg.replyto;
+    var streamqueue = msg.replyto;
+    if (payload.queuename != null && payload.queuename != "") {
+      streamqueue = payload.queuename;
+    }
+    var dostream = true;
+    if(payload.stream == "false" || payload.stream == false) {
+      dostream = false;
+    }
+    console.log("commandqueue: " + commandqueue + " streamqueue: " + streamqueue + " dostream: " + dostream)
+    if(commandqueue == null) commandqueue = "";
+    if(streamqueue == null) streamqueue = "";
+    if (payload.command == "runpackage") {
+      if(payload.id == null || payload.id == "") throw new Error("id is required");
+      var packagepath = packagemanager.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.id));
+      if (packagepath == "") {
+        console.log("package not found");
+        return { "command": "error", error: "package not found" };
+      }
+      var stream = new Stream.Readable({
+        read(size) { }
+      });
+      var buffer = "";
+      stream.on('data', async (data) => {
+        uitools.notifyStream(streamid, data);
+        if(dostream) {
+          try {
+            await client.QueueMessage({ queuename: streamqueue, data: {"command": "stream", "data": data} });
+          } catch (error) {
+            console.error(error);
+            dostream = false;
+          }
+        } else {
+          if(data != null) buffer += data.toString();
+        }
+      });
+      stream.on('end', async () => {
+        uitools.notifyStream(streamid, null);
+        var data = {"command": "completed", "data": buffer};
+        if(buffer == "") delete data.data;
+        try {
+          if(commandqueue != "") await client.QueueMessage({ queuename: commandqueue, data });
+        } catch (error) {
+          console.error(error);
+        }
+        try {
+          if(dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data });
+        } catch (error) {
+          console.error(error);
+        }
+      });
+      uitools.remoteRunPackage(payload.id, streamid)
+      runner.addstream(streamid, stream);  
+      await packagemanager.runpackage(payload.id, streamid, true);
+      try {
+        if(dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "success" } });
+      } catch (error) {
+        console.error(error);
+        dostream = false;
+      }
+      return { "command": "success" };
+    }  
+  } catch (error) {
+    return { "command": "error", error: JSON.stringify(error.message) };    
   }
 }
 async function reloadpackages() {

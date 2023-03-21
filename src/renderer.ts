@@ -77,6 +77,47 @@ function updateServerStatus(status:string, user:any, hostname:string) {
         listpackages.style.display = "none";
     }
 }
+function remoteRunPackage(packageid:string, streamid:string) {
+    updateErrorStatus()
+    if(streams[streamid] == null) streams[streamid] = [];
+
+    var package = packagelist.find(p => p._id == packageid);
+
+    const outputul = document.getElementById("output")
+    const span = document.createElement("span");
+    const pre = document.createElement("pre");
+    span.innerText = package.name;
+    const killbutton = document.createElement("button");
+    killbutton.id = "kill" + streamid;
+    killbutton.innerText = "kill";
+    killbutton.onclick = function() {
+        app.stopPackage(streamid);
+    }
+    span.appendChild(killbutton);
+    const togglebutton = document.createElement("button");
+    togglebutton.id = "toggle" + streamid;
+    togglebutton.innerText = "toggle";
+    togglebutton.onclick = function() {
+        pre.classList.toggle('collapsed');
+        pre.classList.toggle('expanded');
+        pre.style.display = pre.classList.contains('collapsed') ? 'block' : 'none';
+    }
+    span.appendChild(togglebutton);
+    const clearbutton = document.createElement("button");
+    clearbutton.id = "clear" + streamid;
+    clearbutton.innerText = "clear";
+    clearbutton.onclick = function() {
+        pre.innerText = "";
+    }
+    span.appendChild(clearbutton);
+    pre.id = streamid;
+    pre.innerText = "";
+    const li = document.createElement("li");
+    li.appendChild(span);
+    li.appendChild(pre);
+    outputul.insertBefore(li, outputul.firstChild);
+    togglebutton.onclick(null);
+}
 function runPackage(packageid:string) {
     try {
         updateErrorStatus()
