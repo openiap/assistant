@@ -247,6 +247,10 @@ async function onDisconnected(client: openiap) {
   uitools.notifyServerStatus('disconnected', null, "");
 };
 app.whenReady().then(() => {
+  if((process.resourcesPath != null && process.resourcesPath != "") && process.platform == "darwin") {
+    packagemanager.packagefolder = path.join(process.resourcesPath, "app.asar");
+  }
+
   uitools.createWindow();
   init();
   uitools.notifyConfig(assistentConfig);
