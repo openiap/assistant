@@ -3,8 +3,6 @@
 
 declare const versions: any;
 declare const app: any;
-const information = document.getElementById("info")
-information.innerText = `This app is using Chrome (v${versions.chrome()}), Node.js (v${versions.node()}), and Electron (v${versions.electron()})`
 var packagelist: any[] = [];
 
 const clearcache = document.getElementById("clearcache")
@@ -24,7 +22,6 @@ const setupurl = document.getElementById("setupurl")
 const setupconnect = document.getElementById("setupconnect")
 const listpackages = document.getElementById("listpackages")
 const signout = document.getElementById("signout")
-
 
 setupconnect.onclick = async function() {
     try {
@@ -241,3 +238,8 @@ function processlog(byteArray:any) {
 }
 
 
+async function init() {
+    const information = document.getElementById("info")
+    information.innerText = `Chrome ${versions.chrome()}, Node.js ${versions.node()}, and Electron ${versions.electron()}, and Python ${await versions.python()}`
+}
+init()

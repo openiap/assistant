@@ -1,47 +1,54 @@
 {
-  "name": "assistent",
-  "main": "dist/main.js",
-  "version": "0.0.3",
-  "description": "OpenIAP Desktop Assistent",
-  "scripts": {
-    "watch": "tsc -w",
-    "lint": "eslint -c .eslintrc --ext .ts ./src",
-    "start": "npm run build && electron ./dist/main.js",
-    "build": "tsc && electron-builder -wl --config electron-builder.yml",
-    "buildl": "tsc && electron-builder -l --config electron-builder.yml",
-    "buildw": "tsc && electron-builder -w --config electron-builder.yml",
-    "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
-    "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
-    "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
-    "updateagentlocal": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
-    "updateagentdev": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent",
-    "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent"
-  },
-  "repository": "https://github.com/electron/electron-quick-start-typescript",
-  "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo",
-    "typescript"
-  ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
-  "devDependencies": {
-    "@types/adm-zip": "^0.5.0",
-    "@types/tar": "^6.1.4",
-    "@typescript-eslint/eslint-plugin": "^4.33.0",
-    "@typescript-eslint/parser": "^4.33.0",
-    "electron": "^22.2.0",
-    "electron-builder": "^23.6.0",
-    "eslint": "^7.32.0",
-    "typescript": "^4.8.3"
-  },
-  "dependencies": {
-    "@openiap/nodeagent": "github:openiap/nodeagent",
-    "@openiap/nodeapi": "^0.0.8",
-    "adm-zip": "^0.5.10",
-    "tar": "^6.1.13"
-  }
+    "name": "assistent",
+    "main": "dist/main.js",
+    "version": "0.0.3",
+    "description": "OpenIAP Desktop Assistent",
+    "scripts": {
+        "watch": "tsc -w",
+        "lint": "eslint -c .eslintrc --ext .ts ./src",
+        "start": "npm run build && electron ./dist/main.js",
+        "build": "tsc && electron-builder -wl --config electron-builder.yml",
+        "buildl": "tsc && electron-builder -l --config electron-builder.yml",
+        "buildw": "tsc && electron-builder -w --config electron-builder.yml",
+        "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
+        "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
+        "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
+        "updateagentlocal": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
+        "updateagentdev": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent",
+        "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent",
+        "clean": "rm -rf $(npm get cache)/_npx && sudo rm -rf /root/.npm/_npx"
+    },
+    "repository": "https://github.com/electron/electron-quick-start-typescript",
+    "keywords": [
+        "Electron",
+        "quick",
+        "start",
+        "tutorial",
+        "demo",
+        "typescript"
+    ],
+    "author": "GitHub",
+    "license": "CC0-1.0",
+    "devDependencies": {
+        "@types/adm-zip": "^0.5.0",
+        "@types/tar": "^6.1.4",
+        "@typescript-eslint/eslint-plugin": "^4.33.0",
+        "@typescript-eslint/parser": "^4.33.0",
+        "electron": "^22.2.0",
+        "electron-builder": "^23.6.0",
+        "eslint": "^7.32.0",
+        "typescript": "^4.8.3"
+    },
+    "dependencies": {
+        "@openiap/nodeagent": "^0.0.10",
+        "@openiap/nodeapi": "^0.0.8",
+        "adm-zip": "^0.5.10",
+        "tar": "^6.1.13"
+    },
+    "openiap": {
+        "language": "nodejs",
+        "typescript": true,
+        "daemon": false,
+        "chromium": false
+    }
 }

@@ -313,6 +313,13 @@ app.whenReady().then(() => {
     require('electron').shell.openExternal(signinurl);
     return signinurl;
   });
+  ipcMain.handle('python-version', async (sender) => {
+    if(languages.indexOf("python") == -1) return "";
+    // get major and monor version
+    var result = await runner.runpythoncode("import sys;print(f\"{sys.version_info.major}.{sys.version_info.minor}\");");
+    result = result.replace("\r", "").replace("\n", "");
+    return result
+  });
   ipcMain.handle('stop-package', async (sender, streamid) => {
     uitools.log('stop package ' + streamid);
     runner.kill(streamid);
