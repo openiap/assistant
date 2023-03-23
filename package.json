@@ -10,6 +10,7 @@
         "build": "tsc && electron-builder -wl --config electron-builder.yml",
         "buildl": "tsc && electron-builder -l --config electron-builder.yml",
         "buildw": "tsc && electron-builder -w --config electron-builder.yml",
+        "buildm": "tsc && electron-builder -m --config electron-builder.yml",
         "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
         "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
         "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
@@ -40,8 +41,8 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "^0.0.10",
-        "@openiap/nodeapi": "^0.0.8",
+        "@openiap/nodeagent": "^0.0.14",
+        "@openiap/nodeapi": "^0.0.9",
         "adm-zip": "^0.5.10",
         "tar": "^6.1.13"
     },
