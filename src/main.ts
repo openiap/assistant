@@ -9,6 +9,9 @@ import * as os from "os"
 import * as path from "path";
 import * as fs from "fs"
 process.env.log_with_colors = "false"
+process.on('SIGINT', ()=> { process.exit(0) })
+process.on('SIGTERM', ()=> { process.exit(0) })
+process.on('SIGQUIT', ()=> { process.exit(0) })
 const client: openiap = new openiap()
 client.agent = "assistent"
 var myproject = require(path.join(__dirname, "..", "package.json"));
