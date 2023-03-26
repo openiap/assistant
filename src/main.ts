@@ -3,6 +3,38 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { Stream } from 'stream';
 import { uitools } from "./uitools"
 import { runner, packagemanager, agenttools } from "@openiap/nodeagent";
+
+
+const util = require('util');
+const { spawn } = require('child_process');
+
+const exec = util.promisify(require('child_process').exec);
+
+async function getUserPath() {
+  try {
+    // Get the user's PATH environment variable by running `echo $PATH` in a shell
+    const { stdout } = await exec('echo $PATH');
+
+    // Parse the output of `echo $PATH` to extract the PATH value
+    // const path = stdout.trim().split(':')[1];
+    const paths = stdout.trim().split(':');
+    if(paths.indexOf('/opt/homebrew/bin') == -1) paths.push('/opt/homebrew/bin');
+    if(paths.indexOf('/opt/homebrew/sbin') == -1) paths.push('/opt/homebrew/sbin');
+    if(paths.indexOf('/usr/local/bin') == -1) paths.push('/usr/local/bin');
+    if(paths.indexOf('/System/Cryptexes/App/usr/bin') == -1) paths.push('/System/Cryptexes/App/usr/bin');
+    if(paths.indexOf('/usr/bin') == -1) paths.push('/usr/bin');
+    if(paths.indexOf('/bin') == -1) paths.push('/bin');
+    if(paths.indexOf('/usr/sbin') == -1) paths.push('/usr/sbin');
+    if(paths.indexOf('/sbin') == -1) paths.push('/sbin');
+
+
+    return paths.join(":");
+  } catch (err) {
+    console.error('Failed to get user PATH:', err);
+    return null;
+  }
+}
+
 // import { runner  } from "./runner";
 // import { packages } from "./packages"
 import * as os from "os"
@@ -251,13 +283,13 @@ async function onDisconnected(client: openiap) {
   uitools.log('disconnected');
   uitools.notifyServerStatus('disconnected', null, "");
 };
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // if((process.resourcesPath != null && process.resourcesPath != "") && process.platform == "darwin") {
   //   packagemanager.packagefolder = path.join(process.resourcesPath, "app.asar");
   // }
-
   uitools.createWindow();
   init();
+  process.env.PATH = await getUserPath()
   uitools.notifyConfig(assistentConfig);
   ipcMain.handle('ping', (sender) => {
     return 'pong';
