@@ -157,7 +157,9 @@ async function reloadpackages() {
 async function RegisterAgent() {
   try {
     var u = new URL(client.url);
-    var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "chrome": true, "chromium": true, "maxpackages": 50 })
+    var chromium = runner.findChromiumPath() != "";
+    var chrome = runner.findChromePath() != "";
+    var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "assistent": true, chrome, chromium, "maxpackages": 50 })
     var res: any = await client.CustomCommand({
       id: agentid, command: "registeragent",
       data
