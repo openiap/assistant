@@ -18,14 +18,14 @@ async function getUserPath() {
     // Parse the output of `echo $PATH` to extract the PATH value
     // const path = stdout.trim().split(':')[1];
     const paths = stdout.trim().split(':');
-    if(paths.indexOf('/opt/homebrew/bin') == -1) paths.push('/opt/homebrew/bin');
-    if(paths.indexOf('/opt/homebrew/sbin') == -1) paths.push('/opt/homebrew/sbin');
-    if(paths.indexOf('/usr/local/bin') == -1) paths.push('/usr/local/bin');
-    if(paths.indexOf('/System/Cryptexes/App/usr/bin') == -1) paths.push('/System/Cryptexes/App/usr/bin');
-    if(paths.indexOf('/usr/bin') == -1) paths.push('/usr/bin');
-    if(paths.indexOf('/bin') == -1) paths.push('/bin');
-    if(paths.indexOf('/usr/sbin') == -1) paths.push('/usr/sbin');
-    if(paths.indexOf('/sbin') == -1) paths.push('/sbin');
+    if (paths.indexOf('/opt/homebrew/bin') == -1) paths.push('/opt/homebrew/bin');
+    if (paths.indexOf('/opt/homebrew/sbin') == -1) paths.push('/opt/homebrew/sbin');
+    if (paths.indexOf('/usr/local/bin') == -1) paths.push('/usr/local/bin');
+    if (paths.indexOf('/System/Cryptexes/App/usr/bin') == -1) paths.push('/System/Cryptexes/App/usr/bin');
+    if (paths.indexOf('/usr/bin') == -1) paths.push('/usr/bin');
+    if (paths.indexOf('/bin') == -1) paths.push('/bin');
+    if (paths.indexOf('/usr/sbin') == -1) paths.push('/usr/sbin');
+    if (paths.indexOf('/sbin') == -1) paths.push('/sbin');
 
 
     return paths.join(":");
@@ -41,9 +41,9 @@ import * as os from "os"
 import * as path from "path";
 import * as fs from "fs"
 process.env.log_with_colors = "false"
-process.on('SIGINT', ()=> { process.exit(0) })
-process.on('SIGTERM', ()=> { process.exit(0) })
-process.on('SIGQUIT', ()=> { process.exit(0) })
+process.on('SIGINT', () => { process.exit(0) })
+process.on('SIGTERM', () => { process.exit(0) })
+process.on('SIGQUIT', () => { process.exit(0) })
 const client: openiap = new openiap()
 client.agent = "assistent"
 var myproject = require(path.join(__dirname, "..", "package.json"));
@@ -97,8 +97,10 @@ function init() {
 }
 async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: string) {
   try {
-    const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    if(payload != null && payload.payload != null) payload = payload.payload;
+    // const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    let streamid = msg.correlationId;
+    if (payload != null && payload.payload != null) payload = payload.payload;
+    if (payload.streamid != null && payload.streamid != "") streamid = payload.streamid;
     // console.log("onQueueMessage");
     // console.log(payload);
     if (user == null || jwt == null || jwt == "") {
@@ -110,14 +112,14 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
       streamqueue = payload.queuename;
     }
     var dostream = true;
-    if(payload.stream == "false" || payload.stream == false) {
+    if (payload.stream == "false" || payload.stream == false) {
       dostream = false;
     }
     console.log("commandqueue: " + commandqueue + " streamqueue: " + streamqueue + " dostream: " + dostream)
-    if(commandqueue == null) commandqueue = "";
-    if(streamqueue == null) streamqueue = "";
+    if (commandqueue == null) commandqueue = "";
+    if (streamqueue == null) streamqueue = "";
     if (payload.command == "runpackage") {
-      if(payload.id == null || payload.id == "") throw new Error("id is required");
+      if (payload.id == null || payload.id == "") throw new Error("id is required");
       var packagepath = packagemanager.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.id));
       if (packagepath == "") {
         console.log("package not found");
@@ -129,45 +131,44 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
       var buffer = "";
       stream.on('data', async (data) => {
         uitools.notifyStream(streamid, data);
-        if(dostream) {
-          try {
-            await client.QueueMessage({ queuename: streamqueue, data: {"command": "stream", "data": data} });
-          } catch (error) {
-            console.error(error);
-            dostream = false;
-          }
-        } else {
-          if(data != null) buffer += data.toString();
+        if (!dostream) {
+          if (data != null) buffer += data.toString();
         }
       });
       stream.on('end', async () => {
         uitools.notifyStream(streamid, null);
-        var data = {"command": "completed", "data": buffer};
-        if(buffer == "") delete data.data;
+        var data = { "command": "completed", "data": buffer };
+        if (buffer == "") delete data.data;
         try {
-          if(commandqueue != "") await client.QueueMessage({ queuename: commandqueue, data });
+          if (commandqueue != "") await client.QueueMessage({ queuename: commandqueue, data, correlationId: streamid });
         } catch (error) {
           console.error(error);
         }
         try {
-          if(dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data });
+          if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data, correlationId: streamid });
         } catch (error) {
           console.error(error);
         }
       });
       uitools.remoteRunPackage(payload.id, streamid)
-      runner.addstream(streamid, stream);  
-      await packagemanager.runpackage(payload.id, streamid, true);
+      runner.addstream(streamid, stream);
+      await packagemanager.runpackage(client, payload.id, streamid, streamqueue, true);
       try {
-        if(dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "success" } });
+        if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "success" }, correlationId: streamid });
       } catch (error) {
         console.error(error);
         dostream = false;
       }
       return { "command": "success" };
-    }  
+    }
+    if (payload.command == "kill") {
+      if (payload.id == null || payload.id == "") payload.id = payload.streamid;
+      if (payload.id == null || payload.id == "") throw new Error("id is required");
+      runner.kill(client, payload.id);
+      return { "command": "success" };
+    }
   } catch (error) {
-    return { "command": "error", error: JSON.stringify(error.message) };    
+    return { "command": "error", error: JSON.stringify(error.message) };
   }
 }
 async function reloadpackages() {
@@ -199,14 +200,14 @@ async function RegisterAgent() {
     if (res != null) res = JSON.parse(res);
     if (res != null && res.slug != "" && res._id != null && res._id != "") {
       localqueue = await client.RegisterQueue({ queuename: res.slug }, onQueueMessage);
-        agentid = res._id
-        var config = require(path.join(os.homedir(), ".openiap", "config.json"));
-        config.agentid = agentid
-        if(res.jwt != null && res.jwt != "") {
-          config.jwt = res.jwt
-          process.env.jwt = res.jwt
-        }  
-        fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
+      agentid = res._id
+      var config = require(path.join(os.homedir(), ".openiap", "config.json"));
+      config.agentid = agentid
+      if (res.jwt != null && res.jwt != "") {
+        config.jwt = res.jwt
+        process.env.jwt = res.jwt
+      }
+      fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
     }
     if (res.jwt != null && res.jwt != "") {
       await client.Signin({ jwt: res.jwt });
@@ -220,10 +221,11 @@ async function RegisterAgent() {
     process.env["jwt"] = "";
     try {
       client.Close();
-    } catch (error) {      
+    } catch (error) {
     }
   }
 }
+var lastreload = new Date();
 async function onConnected(client: openiap) {
   var u = new URL(client.url);
   try {
@@ -242,10 +244,10 @@ async function onConnected(client: openiap) {
     var watchid = await client.Watch({ paths: [], collectionname: "agents" }, async (operation: string, document: any) => {
       try {
         if (document._type == "package") {
-          if(operation == "insert") {
+          if (operation == "insert") {
             console.log("package " + document.name + " inserted, reload packages");
             await reloadpackages()
-          } else if(operation == "replace") {
+          } else if (operation == "replace") {
             console.log("package " + document.name + " updated, delete and reload");
             packagemanager.removepackage(document._id);
             await packagemanager.getpackage(client, document.fileid, document._id);
@@ -254,12 +256,17 @@ async function onConnected(client: openiap) {
             packagemanager.removepackage(document._id);
           }
         } else if (document._type == "agent") {
-          if(document._id == agentid)  {
+          if (document._id == agentid) {
+            if (lastreload.getTime() + 1000 > new Date().getTime()) {
+              console.log("agent changed, but last reload was less than 1 second ago, do nothing");
+              return;
+            }
+            lastreload = new Date();
             console.log("agent changed, reload config");
             await RegisterAgent()
           } else {
             console.log("Another agent was changed, do nothing");
-          }        
+          }
         } else {
           console.log("unknown type " + document._type + " changed, do nothing");
         }
@@ -355,7 +362,7 @@ app.whenReady().then(async () => {
     return signinurl;
   });
   ipcMain.handle('python-version', async (sender) => {
-    if(languages.indexOf("python") == -1) return "";
+    if (languages.indexOf("python") == -1) return "";
     // get major and monor version
     var result = await runner.runpythoncode("import sys;print(f\"{sys.version_info.major}.{sys.version_info.minor}\");");
     result = result.replace("\r", "").replace("\n", "");
@@ -363,7 +370,7 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('stop-package', async (sender, streamid) => {
     uitools.log('stop package ' + streamid);
-    runner.kill(streamid);
+    runner.kill(client, streamid);
   });
   ipcMain.handle('run-package', async (sender, id, streamid) => {
     var stream = new Stream.Readable({
@@ -376,7 +383,7 @@ app.whenReady().then(async () => {
       uitools.notifyStream(streamid, null);
     });
     runner.addstream(streamid, stream);
-    await packagemanager.runpackage(id, streamid, false);
+    await packagemanager.runpackage(client, id, streamid, "", false);
   });
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) uitools.createWindow();

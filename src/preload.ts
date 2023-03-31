@@ -8,9 +8,9 @@ contextBridge.exposeInMainWorld('versions', {
 })
 
 contextBridge.exposeInMainWorld('app', {
-  runPackage: (id:string, streamid:string) => ipcRenderer.invoke('run-package', id, streamid),
-  stopPackage: (streamid:string) => ipcRenderer.invoke('stop-package', streamid),
-  setupConnect: (url:string) => ipcRenderer.invoke('setup-connect', url),
+  runPackage: (id: string, streamid: string) => ipcRenderer.invoke('run-package', id, streamid),
+  stopPackage: (streamid: string) => ipcRenderer.invoke('stop-package', streamid),
+  setupConnect: (url: string) => ipcRenderer.invoke('setup-connect', url),
   Signout: () => ipcRenderer.invoke('signout'),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
 })
