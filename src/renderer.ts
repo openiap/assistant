@@ -188,7 +188,7 @@ function updateStream(id: string, byteArray: any) {
     if (outputul == null) return;
     const decoder = new TextDecoder("utf-8");
     const string = decoder.decode(bytes);
-    outputul.innerText += string;
+    outputul.innerText = string + outputul.innerText;
 }
 function updateConfig(config: any) {
     config = JSON.parse(config);
