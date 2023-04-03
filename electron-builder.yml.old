@@ -19,7 +19,7 @@ linux:
   category: Application
 mac:
   target:
-    target: default
+    target: pkg # default
     arch: 
       - x64
       - arm64

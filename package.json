@@ -10,7 +10,7 @@
         "build": "tsc && electron-builder -wl --config electron-builder.yml",
         "buildl": "tsc && electron-builder -l --config electron-builder.yml",
         "buildw": "tsc && electron-builder -w --config electron-builder.yml",
-        "buildm": "tsc && electron-builder -m --config electron-builder.yml",
+        "buildm": "tsc && electron-builder -m",
         "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
         "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
         "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
@@ -19,6 +19,16 @@
         "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent",
         "clean": "rm -rf $(npm get cache)/_npx && sudo rm -rf /root/.npm/_npx"
     },
+    "build": {
+        "appId": "openiap-assistent",
+        "directories": {
+             "output": "release"
+        },
+        "mac": {
+          "artifactName": "${productName}-${version}-${arch}.${ext}",
+          "target": "pkg"
+        }
+      },
     "repository": "https://github.com/electron/electron-quick-start-typescript",
     "keywords": [
         "Electron",
