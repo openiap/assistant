@@ -1,7 +1,7 @@
 {
     "name": "assistent",
     "main": "dist/main.js",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "OpenIAP Desktop Assistent",
     "scripts": {
         "watch": "tsc -w",
