@@ -8,8 +8,8 @@
         "lint": "eslint -c .eslintrc --ext .ts ./src",
         "start": "npm run build && electron ./dist/main.js",
         "build": "tsc && electron-builder -wl --config electron-builder.yml",
-        "buildl": "tsc && electron-builder -l --config electron-builder.yml",
-        "buildw": "tsc && electron-builder -w --config electron-builder.yml",
+        "buildl": "tsc && electron-builder -l",
+        "buildw": "tsc && electron-builder -w",
         "buildm": "tsc && electron-builder -m",
         "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
         "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
@@ -26,7 +26,17 @@
         },
         "mac": {
           "artifactName": "${productName}-${version}-${arch}.${ext}",
-          "target": "pkg"
+          "target": "pkg",
+          "arch": ["x64", "arm64"]
+        },
+        "linux": {
+            "icon": "open_rpa256.png",
+            "target": "AppImage",
+            "category": "Application"
+        },
+        "win": {
+            "icon": "open_rpa256.png",
+            "target": "portable"
         }
       },
     "repository": "https://github.com/electron/electron-quick-start-typescript",
