@@ -22,12 +22,15 @@
     "build": {
         "appId": "openiap-assistent",
         "directories": {
-             "output": "release"
+            "output": "release"
         },
         "mac": {
-          "artifactName": "${productName}-${version}-${arch}.${ext}",
-          "target": "pkg",
-          "arch": ["x64", "arm64"]
+            "artifactName": "${productName}-${version}-${arch}.${ext}",
+            "target": "pkg",
+            "arch": [
+                "x64",
+                "arm64"
+            ]
         },
         "linux": {
             "icon": "open_rpa256.png",
@@ -38,7 +41,7 @@
             "icon": "open_rpa256.png",
             "target": "portable"
         }
-      },
+    },
     "repository": "https://github.com/electron/electron-quick-start-typescript",
     "keywords": [
         "Electron",
@@ -61,7 +64,7 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "github:openiap/nodeagent",
+        "@openiap/nodeagent": "^0.0.36",
         "@openiap/nodeapi": "^0.0.10",
         "adm-zip": "^0.5.10",
         "tar": "^6.1.13"
