@@ -1,2 +1,2 @@
 rem "C:\Program Files (x86)\Windows Kits\10\bin\10.0.20348.0\x86\signtool.exe" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "release\assistent 0.0.4.exe"
-"C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86\signtool.exe" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "release\assistent 0.0.4.exe"
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86\signtool.exe" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "release\assistent 0.0.5.exe"
