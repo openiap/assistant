@@ -296,7 +296,9 @@ app.whenReady().then(async () => {
   // }
   uitools.createWindow();
   init();
-  process.env.PATH = await getUserPath()
+  if(process.platform != "win32") {
+    process.env.PATH = await getUserPath()
+  }
   uitools.notifyConfig(assistentConfig);
   ipcMain.handle('ping', (sender) => {
     return 'pong';
