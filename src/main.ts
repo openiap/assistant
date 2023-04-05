@@ -3,7 +3,6 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { Stream } from 'stream';
 import { uitools } from "./uitools"
 import { runner, packagemanager, agenttools } from "@openiap/nodeagent";
-const AutoLaunch = require('auto-launch');
 const util = require('util');
 const { spawn } = require('child_process');
 import * as os from "os"
@@ -11,31 +10,98 @@ import * as path from "path";
 import * as fs from "fs"
 
 const exec = util.promisify(require('child_process').exec);
+const appName = 'assistent';
+var apppath = app.getAppPath();
+if(process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
+  apppath = process.env.APPIMAGE;
+} else {
+  if(app.isPackaged) {
+    apppath = app.getPath('exe');
+  } else {
+    apppath = path.join(__dirname, '..', 'node_modules', '.bin', 'electron') + " " + __filename;
+  } 
+}
 
-const autoLauncher = new AutoLaunch({
-  name: 'OpenIAP Desktop Assistent',
-  path: path.dirname(process.execPath),
-});
-async function enableAutoLaunch() {
-  try {
-    if (!(await autoLauncher.isEnabled())) {
-      await autoLauncher.enable();
-      console.log('Auto-launch enabled.');
-    }
-  } catch (error) {
-    console.error('Error enabling auto-launch:', error);
+function enableAutoLaunch() {
+  switch (os.platform()) {
+    case 'linux':
+      const linuxDesktopEntry = `[Desktop Entry]
+Type=Application
+Exec=${apppath}
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name[en_US]=${appName}
+Name=${appName}
+Comment[en_US]=${appName} auto-launch
+Comment=${appName} auto-launch`;
+
+      const linuxAutostartDir = path.join(os.homedir(), '.config', 'autostart');
+      if (!fs.existsSync(linuxAutostartDir)) {
+        fs.mkdirSync(linuxAutostartDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(linuxAutostartDir, `${appName}.desktop`), linuxDesktopEntry);
+      break;
+
+    case 'darwin':
+    case 'win32':
+      app.setLoginItemSettings({
+        openAtLogin: true,
+      });
+      break;
+
+    default:
+      console.error('Auto-launch not supported on this platform');
   }
 }
-async function disableAutoLaunch() {
-  try {
-    if (await autoLauncher.isEnabled()) {
-      await autoLauncher.disable();
-      console.log('Auto-launch disabled.');
-    }
-  } catch (error) {
-    console.error('Error disabling auto-launch:', error);
+
+function disableAutoLaunch() {
+  switch (os.platform()) {
+    case 'linux':
+      const linuxAutostartFile = path.join(os.homedir(), '.config', 'autostart', `${appName}.desktop`);
+      if (fs.existsSync(linuxAutostartFile)) {
+        fs.unlinkSync(linuxAutostartFile);
+      }
+      break;
+
+    case 'darwin':
+    case 'win32':
+      app.setLoginItemSettings({
+        openAtLogin: false,
+      });
+      break;
+
+    default:
+      console.error('Auto-launch not supported on this platform');
   }
 }
+
+function isAutoLaunchEnabled() {
+  return new Promise<boolean>((resolve, reject) => {
+    switch (os.platform()) {
+      case 'linux':
+        const linuxAutostartFile = path.join(os.homedir(), '.config', 'autostart', `${appName}.desktop`);
+        fs.access(linuxAutostartFile, fs.constants.F_OK, (err) => {
+          if (err) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+        break;
+
+      case 'darwin':
+      case 'win32':
+        const isEnabled = app.getLoginItemSettings().openAtLogin;
+        resolve(isEnabled);
+        break;
+
+      default:
+        reject(new Error('Auto-launch not supported on this platform'));
+    }
+  });
+}
+
 async function getUserPath() {
   try {
     // Get the user's PATH environment variable by running `echo $PATH` in a shell
@@ -314,16 +380,13 @@ async function onDisconnected(client: openiap) {
   uitools.notifyServerStatus('disconnected', null, "");
 };
 app.whenReady().then(async () => {
-  // if((process.resourcesPath != null && process.resourcesPath != "") && process.platform == "darwin") {
-  //   packagemanager.packagefolder = path.join(process.resourcesPath, "app.asar");
-  // }
   uitools.createWindow();
   init();
   if(process.platform != "win32") {
     process.env.PATH = await getUserPath()
   }
   uitools.notifyConfig(assistentConfig);
-  var isEnabled = await autoLauncher.isEnabled();
+  var isEnabled = await isAutoLaunchEnabled();
   uitools.SetAutoLaunchState(isEnabled);
   
   ipcMain.handle('ping', (sender) => {
