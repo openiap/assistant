@@ -3,13 +3,39 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { Stream } from 'stream';
 import { uitools } from "./uitools"
 import { runner, packagemanager, agenttools } from "@openiap/nodeagent";
-
-
+const AutoLaunch = require('auto-launch');
 const util = require('util');
 const { spawn } = require('child_process');
+import * as os from "os"
+import * as path from "path";
+import * as fs from "fs"
 
 const exec = util.promisify(require('child_process').exec);
 
+const autoLauncher = new AutoLaunch({
+  name: 'OpenIAP Desktop Assistent',
+  path: path.dirname(process.execPath),
+});
+async function enableAutoLaunch() {
+  try {
+    if (!(await autoLauncher.isEnabled())) {
+      await autoLauncher.enable();
+      console.log('Auto-launch enabled.');
+    }
+  } catch (error) {
+    console.error('Error enabling auto-launch:', error);
+  }
+}
+async function disableAutoLaunch() {
+  try {
+    if (await autoLauncher.isEnabled()) {
+      await autoLauncher.disable();
+      console.log('Auto-launch disabled.');
+    }
+  } catch (error) {
+    console.error('Error disabling auto-launch:', error);
+  }
+}
 async function getUserPath() {
   try {
     // Get the user's PATH environment variable by running `echo $PATH` in a shell
@@ -37,9 +63,6 @@ async function getUserPath() {
 
 // import { runner  } from "./runner";
 // import { packages } from "./packages"
-import * as os from "os"
-import * as path from "path";
-import * as fs from "fs"
 process.env.log_with_colors = "false"
 process.on('SIGINT', () => { process.exit(0) })
 process.on('SIGTERM', () => { process.exit(0) })
@@ -300,6 +323,9 @@ app.whenReady().then(async () => {
     process.env.PATH = await getUserPath()
   }
   uitools.notifyConfig(assistentConfig);
+  var isEnabled = await autoLauncher.isEnabled();
+  uitools.SetAutoLaunchState(isEnabled);
+  
   ipcMain.handle('ping', (sender) => {
     return 'pong';
   });
@@ -370,6 +396,15 @@ app.whenReady().then(async () => {
     result = result.replace("\r", "").replace("\n", "");
     return result
   });
+  ipcMain.handle('enable-auto-launch', async (sender) => {
+    await enableAutoLaunch();
+  });
+  ipcMain.handle('disable-auto-launch', async (sender) => {
+    await disableAutoLaunch();
+  });
+  
+
+
   ipcMain.handle('stop-package', async (sender, streamid) => {
     uitools.log('stop package ' + streamid);
     runner.kill(client, streamid);

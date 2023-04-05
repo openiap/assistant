@@ -22,6 +22,20 @@ const setupurl = document.getElementById("setupurl")
 const setupconnect = document.getElementById("setupconnect")
 const listpackages = document.getElementById("listpackages")
 const signout = document.getElementById("signout")
+const autoLaunchCheckbox = document.getElementById('autoLaunchCheckbox');
+
+autoLaunchCheckbox.addEventListener('change', async (event) => {
+    // @ts-ignore
+  if (event.target.checked) {
+    await app.enableAutoLaunch();
+  } else {
+    await app.disableAutoLaunch();
+  }
+});
+function SetAutoLaunchState(status: boolean) {
+    // @ts-ignore
+    autoLaunchCheckbox.checked = status;    
+}
 
 setupconnect.onclick = async function () {
     try {

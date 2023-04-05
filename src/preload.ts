@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld('app', {
   setupConnect: (url: string) => ipcRenderer.invoke('setup-connect', url),
   Signout: () => ipcRenderer.invoke('signout'),
   clearCache: () => ipcRenderer.invoke('clear-cache'),
+  enableAutoLaunch: () => ipcRenderer.invoke('enable-auto-launch'),
+  disableAutoLaunch: () => ipcRenderer.invoke('disable-auto-launch'),
 })
 

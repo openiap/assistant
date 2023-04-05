@@ -43,7 +43,10 @@ export class uitools {
   static remoteRunPackage(packageid: string, streamid: string) {
     this.mainWindow.webContents.executeJavaScript(`remoteRunPackage('${packageid}', '${streamid}')`);
   }
-
+  static SetAutoLaunchState(status: boolean) {
+    this.mainWindow.webContents.executeJavaScript(`SetAutoLaunchState(${status})`);
+  }
+  
 
   static log(message: Buffer | string) {
     let buffer = message;
@@ -58,4 +61,6 @@ export class uitools {
   static setTitle(title: string) {
     this.mainWindow.setTitle(title);
   }
+
+  
 }
