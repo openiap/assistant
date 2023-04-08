@@ -11,6 +11,7 @@
         "buildl": "tsc && electron-builder -l",
         "buildw": "tsc && electron-builder -w",
         "buildm": "tsc && electron-builder -m",
+        "buildm2": "tsc && electron-builder -m --x64",
         "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
         "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
         "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
