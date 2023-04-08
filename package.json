@@ -60,7 +60,7 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "github:openiap/nodeagent",
+        "@openiap/nodeagent": "^0.0.40",
         "@openiap/nodeapi": "^0.0.10",
         "adm-zip": "^0.5.10",
         "tar": "^6.1.13"
