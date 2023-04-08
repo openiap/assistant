@@ -17,6 +17,7 @@
         "updateagentlocal": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
         "updateagentdev": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent",
         "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent",
+        "macsign": "electron-osx-sign openiap-assistent --identity='Developer ID Application' --no-gatekeeper-assess",
         "clean": "rm -rf $(npm get cache)/_npx && sudo rm -rf /root/.npm/_npx"
     },
     "build": {
@@ -26,7 +27,7 @@
         },
         "mac": {
             "artifactName": "${productName}-${version}-${arch}.${ext}",
-            "target": "pkg"
+            "target": "dmg"
         },
         "linux": {
             "icon": "open_rpa256.png",
