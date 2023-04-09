@@ -193,9 +193,8 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
     // console.log("onQueueMessage");
     // console.log(payload);
     if (user == null || jwt == null || jwt == "") {
-      return { "command": "error", error: "not authenticated" };
+      return { "command": payload.command, "success": false, error: "not authenticated" };
     }
-    var commandqueue = msg.replyto;
     var streamqueue = msg.replyto;
     if (payload.queuename != null && payload.queuename != "") {
       streamqueue = payload.queuename;
@@ -204,60 +203,81 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
     if (payload.stream == "false" || payload.stream == false) {
       dostream = false;
     }
-    console.log("commandqueue: " + commandqueue + " streamqueue: " + streamqueue + " dostream: " + dostream)
-    if (commandqueue == null) commandqueue = "";
+    console.log("streamqueue: " + streamqueue + " dostream: " + dostream)
     if (streamqueue == null) streamqueue = "";
     if (payload.command == "runpackage") {
       if (payload.id == null || payload.id == "") throw new Error("id is required");
       var packagepath = packagemanager.getpackagepath(path.join(os.homedir(), ".openiap", "packages", payload.id));
       if (packagepath == "") {
         console.log("package not found");
-        return { "command": "error", error: "package not found" };
+        return { "command": "runpackage", "success": false, "completed": true , error: "Package " + payload.id + " not found" };
       }
       var stream = new Stream.Readable({
         read(size) { }
       });
-      var buffer = "";
       stream.on('data', async (data) => {
         uitools.notifyStream(streamid, data);
-        if (!dostream) {
-          if (data != null) buffer += data.toString();
-        }
       });
       stream.on('end', async () => {
         uitools.notifyStream(streamid, null);
-        var data = { "command": "completed", "data": buffer };
-        if (buffer == "") delete data.data;
-        try {
-          if (commandqueue != "") await client.QueueMessage({ queuename: commandqueue, data, correlationId: streamid });
-        } catch (error) {
-          console.error(error);
-        }
-        try {
-          if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data, correlationId: streamid });
-        } catch (error) {
-          console.error(error);
-        }
       });
       uitools.remoteRunPackage(payload.id, streamid)
-      runner.addstream(streamid, stream);
+      runner.addstream(streamid, streamqueue, stream);
       await packagemanager.runpackage(client, payload.id, streamid, streamqueue, true);
       try {
-        if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "success" }, correlationId: streamid });
+        if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "runpackage", "success": true, "completed": true }, correlationId: streamid });
       } catch (error) {
         console.error(error);
         dostream = false;
       }
-      return { "command": "success" };
+      return { "command": "runpackage", "success": true, "completed": false };
     }
     if (payload.command == "kill") {
       if (payload.id == null || payload.id == "") payload.id = payload.streamid;
       if (payload.id == null || payload.id == "") throw new Error("id is required");
       runner.kill(client, payload.id);
-      return { "command": "success" };
+      return { "command": "kill", "success": true };
+    }
+    if (payload.command == "killall") {
+      var processcount = runner.processs.length;
+      for (var i = processcount; i >= 0; i--) {
+        runner.kill(client, runner.processs[i].id);
+      }
+      return { "command": "killall", "success": true, "count": processcount };
+    }
+    if (payload.command == "setstreamid") {
+      if (payload.id == null || payload.id == "") payload.id = payload.streamid;
+      if (payload.id == null || payload.id == "") throw new Error("id is required");
+      if(payload.streamqueue == null || payload.streamqueue == "") payload.streamqueue = msg.replyto;
+      if (payload.streamqueue == null || payload.streamqueue == "") throw new Error("streamqueue is required");
+      var processcount = runner.streams.length;
+      var counter = 0;
+      for (var i = processcount; i >= 0; i--) {
+        var p = runner.streams[i];
+        if(p == null) continue
+        if(p.id==payload.id) {
+          counter++;
+          p.streamqueue = payload.streamqueue;
+        }
+      }
+      return { "command": "setstreamid", "success": true, "count": counter };
+    }
+    if (payload.command == "listprocesses") {
+      var processcount = runner.streams.length;
+      var processes = [];
+      for (var i = processcount; i >= 0; i--) {
+        var p = runner.streams[i];
+        if(p == null) continue;
+        processes.push({
+          "id": p.id,
+          "streamqueue": p.streamqueue,
+        });
+      }
+      return { "command": "listprocesses", "success": true, "count": processcount, "processes": processes };
     }
   } catch (error) {
-    return { "command": "error", error: JSON.stringify(error.message) };
+    console.error(error);
+    return { "command": payload.command, "success": false, error: JSON.stringify(error.message) };
   }
 }
 async function reloadpackages() {
@@ -363,6 +383,7 @@ async function onConnected(client: openiap) {
         console.error(error);
       }
     });
+    reconnecttime = 500;
     console.log("watch registered with id", watchid);
   } catch (error) {
     uitools.log(JSON.stringify(error))
@@ -375,9 +396,13 @@ async function onConnected(client: openiap) {
     }
   }
 };
+let reconnecttime = 500;
 async function onDisconnected(client: openiap) {
   uitools.log('disconnected');
   uitools.notifyServerStatus('disconnected', null, "");
+  reconnecttime = reconnecttime + 500;
+  console.log("disconnected, reconnect in " + reconnecttime + "ms");
+  // setTimeout(() => { client.connect(); }, reconnecttime);
 };
 app.whenReady().then(async () => {
   uitools.createWindow();
@@ -482,7 +507,7 @@ app.whenReady().then(async () => {
     stream.on('end', () => {
       uitools.notifyStream(streamid, null);
     });
-    runner.addstream(streamid, stream);
+    runner.addstream(streamid, "", stream);
     await packagemanager.runpackage(client, id, streamid, "", false);
   });
   app.on("activate", function () {
