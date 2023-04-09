@@ -1,8 +1,8 @@
 {
-    "name": "assistent",
+    "name": "assistant",
     "main": "dist/main.js",
-    "version": "0.0.6",
-    "description": "OpenIAP Desktop Assistent",
+    "version": "0.0.7",
+    "description": "OpenIAP Desktop assistant",
     "scripts": {
         "watch": "tsc -w",
         "lint": "eslint -c .eslintrc --ext .ts ./src",
@@ -18,24 +18,26 @@
         "updateagentlocal": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
         "updateagentdev": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent",
         "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent",
-        "macsign": "electron-osx-sign openiap-assistent --identity='Developer ID Application' --no-gatekeeper-assess",
+        "macsign": "electron-osx-sign openiap-assistant --identity='Developer ID Application' --no-gatekeeper-assess",
         "clean": "rm -rf $(npm get cache)/_npx && sudo rm -rf /root/.npm/_npx"
     },
     "build": {
-        "appId": "openiap-assistent",
+        "appId": "openiap-assistant",
         "directories": {
             "output": "release"
         },
         "mac": {
-            "artifactName": "${productName}-${version}-${arch}.${ext}",
+            "artifactName": "${productName}-macos-${arch}.${ext}",
             "target": "dmg"
         },
         "linux": {
+            "artifactName": "${productName}-linux-${arch}.${ext}",
             "icon": "open_rpa256.png",
             "target": "AppImage",
             "category": "Application"
         },
         "win": {
+            "artifactName": "${productName}-win.${ext}",
             "icon": "open_rpa256.png",
             "target": "portable"
         }
@@ -62,8 +64,8 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "^0.0.40",
-        "@openiap/nodeapi": "^0.0.10",
+        "@openiap/nodeagent": "^0.0.41",
+        "@openiap/nodeapi": "^0.0.11",
         "adm-zip": "^0.5.10",
         "tar": "^6.1.13"
     },

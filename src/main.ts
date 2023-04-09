@@ -10,7 +10,7 @@ import * as path from "path";
 import * as fs from "fs"
 
 const exec = util.promisify(require('child_process').exec);
-const appName = 'assistent';
+const appName = 'assistant';
 var apppath = app.getAppPath();
 if(process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
   apppath = process.env.APPIMAGE;
@@ -134,27 +134,27 @@ process.on('SIGINT', () => { process.exit(0) })
 process.on('SIGTERM', () => { process.exit(0) })
 process.on('SIGQUIT', () => { process.exit(0) })
 const client: openiap = new openiap()
-client.agent = "assistent"
+client.agent = "assistant"
 var myproject = require(path.join(__dirname, "..", "package.json"));
 client.version = myproject.version;
 let localqueue = "";
 let agentid = process.env.agentid;
 var languages = ["nodejs"];
-var assistentConfig: any = { "apiurl": "wss://app.openiap.io/ws/v2", jwt: "", agentid: "" };
+var assistantConfig: any = { "apiurl": "wss://app.openiap.io/ws/v2", jwt: "", agentid: "" };
 function reloadAndParseConfig() {
   if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
-    assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
+    assistantConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
     process.env["NODE_ENV"] = "production";
-    if (assistentConfig.apiurl) {
-      process.env["apiurl"] = assistentConfig.apiurl;
-      client.url = assistentConfig.apiurl;
+    if (assistantConfig.apiurl) {
+      process.env["apiurl"] = assistantConfig.apiurl;
+      client.url = assistantConfig.apiurl;
     }
-    if (assistentConfig.jwt) {
-      process.env["jwt"] = assistentConfig.jwt;
-      client.jwt = assistentConfig.jwt;
+    if (assistantConfig.jwt) {
+      process.env["jwt"] = assistantConfig.jwt;
+      client.jwt = assistantConfig.jwt;
     }
-    if (assistentConfig.agentid != null && assistentConfig.agentid != "") {
-      agentid = assistentConfig.agentid;
+    if (assistantConfig.agentid != null && assistantConfig.agentid != "") {
+      agentid = assistantConfig.agentid;
     }
   }
 }
@@ -281,7 +281,7 @@ async function RegisterAgent() {
     var u = new URL(client.url);
     var chromium = runner.findChromiumPath() != "";
     var chrome = runner.findChromePath() != "";
-    var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "assistent": true, chrome, chromium, "maxpackages": 50 })
+    var data = JSON.stringify({ hostname: os.hostname(), os: os.platform(), arch: os.arch(), username: os.userInfo().username, version: app.getVersion(), "languages": languages, "assistant": true, chrome, chromium, "maxpackages": 50 })
     var res: any = await client.CustomCommand({
       id: agentid, command: "registeragent",
       data
@@ -385,7 +385,7 @@ app.whenReady().then(async () => {
   if(process.platform != "win32") {
     process.env.PATH = await getUserPath()
   }
-  uitools.notifyConfig(assistentConfig);
+  uitools.notifyConfig(assistantConfig);
   var isEnabled = await isAutoLaunchEnabled();
   uitools.SetAutoLaunchState(isEnabled);
   
@@ -432,16 +432,16 @@ app.whenReady().then(async () => {
           } else {
             client.url = "ws://" + host + "/ws/v2";
           }
-          assistentConfig = { apiurl: client.url, jwt: client.jwt }
+          assistantConfig = { apiurl: client.url, jwt: client.jwt }
           if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
-            assistentConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
-            assistentConfig.apiurl = client.url;
-            assistentConfig.jwt = client.jwt;
+            assistantConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
+            assistantConfig.apiurl = client.url;
+            assistantConfig.jwt = client.jwt;
           }
           if (!fs.existsSync(path.join(os.homedir(), ".openiap"))) fs.mkdirSync(path.join(os.homedir(), ".openiap"));
-          fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(assistentConfig));
+          fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(assistantConfig));
           if (client.connected) client.Close();
-          uitools.notifyConfig(assistentConfig);
+          uitools.notifyConfig(assistantConfig);
           uitools.notifyServerStatus('connecting', null, u.hostname);
           client.connect();
         } catch (error) {
