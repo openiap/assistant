@@ -222,8 +222,7 @@ async function onQueueMessage(msg: QueueEvent, payload: any, user: any, jwt: str
         uitools.notifyStream(streamid, null);
       });
       uitools.remoteRunPackage(payload.id, streamid)
-      runner.addstream(streamid, streamqueue, stream);
-      await packagemanager.runpackage(client, payload.id, streamid, streamqueue, true);
+      await packagemanager.runpackage(client, payload.id, streamid, streamqueue, stream, true);
       try {
         if (dostream == true && streamqueue != "") await client.QueueMessage({ queuename: streamqueue, data: { "command": "runpackage", "success": true, "completed": true }, correlationId: streamid });
       } catch (error) {
@@ -287,7 +286,7 @@ async function reloadpackages() {
       try {
         if (fs.existsSync(path.join(packagemanager.packagefolder, _packages[i]._id))) continue;
         if (_packages[i].fileid != null && _packages[i].fileid != "") {
-          await packagemanager.getpackage(client, _packages[i].fileid, _packages[i]._id);
+          await packagemanager.getpackage(client, _packages[i]._id);
         }
       } catch (error) {
         console.error(error);
@@ -359,7 +358,7 @@ async function onConnected(client: openiap) {
           } else if (operation == "replace") {
             console.log("package " + document.name + " updated, delete and reload");
             packagemanager.removepackage(document._id);
-            await packagemanager.getpackage(client, document.fileid, document._id);
+            await packagemanager.getpackage(client, document._id);
           } else if (operation == "delete") {
             console.log("package " + document.name + " deleted, cleanup after package");
             packagemanager.removepackage(document._id);
@@ -507,8 +506,7 @@ app.whenReady().then(async () => {
     stream.on('end', () => {
       uitools.notifyStream(streamid, null);
     });
-    runner.addstream(streamid, "", stream);
-    await packagemanager.runpackage(client, id, streamid, "", false);
+    await packagemanager.runpackage(client, id, streamid, "", stream, false);
   });
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) uitools.createWindow();
