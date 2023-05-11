@@ -307,7 +307,7 @@ async function RegisterAgent() {
     });
     if (res != null) res = JSON.parse(res);
     if (res != null && res.slug != "" && res._id != null && res._id != "") {
-      localqueue = await client.RegisterQueue({ queuename: res.slug }, onQueueMessage);
+      localqueue = await client.RegisterQueue({ queuename: res.slug + "agent" }, onQueueMessage);
       agentid = res._id
       var config = require(path.join(os.homedir(), ".openiap", "config.json"));
       config.agentid = agentid
