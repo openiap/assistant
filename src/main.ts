@@ -178,6 +178,14 @@ function init() {
   } catch (error) {
 
   }
+  try {
+    var pwshpath = runner.findPwShPath();
+    if (pwshpath != null && pwshpath != "") {
+      languages.push("powershell");
+    }
+  } catch (error) {
+
+  }
 
   client.onConnected = onConnected
   client.onDisconnected = onDisconnected
