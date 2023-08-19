@@ -94,10 +94,13 @@ function remoteRunPackage(packageid: string, streamid: string) {
 
     var package = packagelist.find(p => p._id == packageid);
 
+    var exists = document.getElementById(streamid);
+    if (exists != null) return;
+
     const outputul = document.getElementById("output")
     const span = document.createElement("span");
     const pre = document.createElement("pre");
-    span.innerText = package.name;
+    span.innerText = package.name + "#" + streamid;
     const killbutton = document.createElement("button");
     killbutton.id = "kill" + streamid;
     killbutton.innerText = "kill";
@@ -141,7 +144,7 @@ function runPackage(packageid: string) {
         const outputul = document.getElementById("output")
         const span = document.createElement("span");
         const pre = document.createElement("pre");
-        span.innerText = package.name;
+        span.innerText = package.name + "#" + streamid;
         const killbutton = document.createElement("button");
         killbutton.id = "kill" + streamid;
         killbutton.innerText = "kill";

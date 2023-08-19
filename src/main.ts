@@ -13,14 +13,14 @@ import * as cron from "node-cron";
 const exec = util.promisify(require('child_process').exec);
 const appName = 'assistant';
 var apppath = app.getAppPath();
-if(process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
+if (process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
   apppath = process.env.APPIMAGE;
 } else {
-  if(app.isPackaged) {
+  if (app.isPackaged) {
     apppath = app.getPath('exe');
   } else {
     apppath = path.join(__dirname, '..', 'node_modules', '.bin', 'electron') + " " + __filename;
-  } 
+  }
 }
 
 function log(message: string) {
@@ -150,13 +150,15 @@ async function init() {
   uitools.notifyServerStatus('connecting', null, "");
   // agent.on("runit", ( streamid, command, parameters, cwd, env) => {
   // });
-  agent.on("streamadded", ( stream:any ) => {
-    var packages = packagemanager.packages
-    uitools.notifyPackages(packages);
+  agent.on("streamadded", (stream: any) => {
+    log("stream added for " + stream.packageid + " with streamid " + stream.id);
     uitools.remoteRunPackage(stream.packageid, stream.id)
     //uitools.notifyStream(stream.id, stream.packageid);
   });
-  agent.on("stream", ( stream:any, message: Buffer) => {
+  agent.on("streamremoved", (stream: any) => {
+    uitools.notifyStream(stream.id, null);
+  });
+  agent.on("stream", (stream: any, message: Buffer) => {
     uitools.notifyStream(stream.id, message);
   });
   await agent.init(client)
@@ -202,13 +204,13 @@ async function onDisconnected(client: openiap) {
 app.whenReady().then(async () => {
   uitools.createWindow();
   await init();
-  if(process.platform != "win32") {
+  if (process.platform != "win32") {
     process.env.PATH = await getUserPath()
   }
   uitools.notifyConfig(agent.assistantConfig);
   var isEnabled = await isAutoLaunchEnabled();
   uitools.SetAutoLaunchState(isEnabled);
-  
+
   ipcMain.handle('ping', (sender) => {
     return 'pong';
   });
@@ -219,7 +221,7 @@ app.whenReady().then(async () => {
     uitools.notifyPackages([]);
     const packages = await agent.reloadpackages(true)
     uitools.notifyPackages(packages);
-    for(let i = 0; i < runner.streams.length; i++) {
+    for (let i = 0; i < runner.streams.length; i++) {
       const s = runner.streams[i];
       uitools.remoteRunPackage(s.packageid, s.id)
       uitools.notifyStream(s.id, s.buffer);
@@ -293,7 +295,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('disable-auto-launch', async (sender) => {
     await disableAutoLaunch();
   });
-  
+
 
 
   ipcMain.handle('stop-package', async (sender, streamid) => {
@@ -305,11 +307,11 @@ app.whenReady().then(async () => {
       read(size) { }
     });
     stream.on('data', (data) => {
-      uitools.notifyStream(streamid, data);
     });
     stream.on('end', () => {
       uitools.notifyStream(streamid, null);
     });
+    log("runapackage " + id + " with streamid " + streamid);
     await packagemanager.runpackage(client, id, streamid, [], stream, false);
   });
   app.on("activate", function () {
@@ -321,31 +323,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-
-async function localrun(packageid: string, env: any, schedule: any) {
-  // uitools.notifyStream(streamid, data);
-
-  // uitools.remoteRunPackage(payload.id, streamid)
-  // await packagemanager.runpackage(client, payload.id, streamid, streamqueue, stream, true, env);
-  
-  try {
-    const streamid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    let stream = new Stream.Readable({
-      read(size) { }
-    });
-    let buffer = "";
-    stream.on('data', async (data) => {
-      uitools.notifyStream(streamid, data);
-    });
-    stream.on('end', async () => {
-      uitools.notifyStream(streamid, null);
-    });
-     // log("run package " + packageid);
-     uitools.remoteRunPackage(packageid, streamid)
-    await packagemanager.runpackage(client, packageid, streamid, [], stream, true, env, schedule);
-    log("run complete");
-  } catch (error) {
-    console.error(error);
-    // process.exit(1);
-  }
-}
