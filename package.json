@@ -1,7 +1,7 @@
 {
     "name": "assistant",
     "main": "dist/main.js",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "description": "OpenIAP Desktop assistant",
     "scripts": {
         "watch": "tsc -w",
@@ -65,7 +65,7 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "^0.0.69",
+        "@openiap/nodeagent": "^0.0.71",
         "@openiap/nodeapi": "^0.0.17",
         "adm-zip": "^0.5.10",
         "node-cron": "^3.0.2",

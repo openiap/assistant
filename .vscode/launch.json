@@ -20,6 +20,7 @@
         "type": "node",
         "request": "launch",
         "cwd": "${workspaceFolder}",
+        "preLaunchTask": "tsc: watch - tsconfig.json",
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
         "windows": {
           "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
