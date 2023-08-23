@@ -14,7 +14,10 @@
         "request": "launch",
         "cwd": "${workspaceFolder}",
         "preLaunchTask": "tsc: watch - tsconfig.json",
-        "runtimeExecutable": "${env:ELECTRON_OVERRIDE_DIST_PATH}/electron",
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+        "linux": {
+          "runtimeExecutable": "${env:ELECTRON_OVERRIDE_DIST_PATH}/electron",
+        },
         "windows": {
           "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
         },
