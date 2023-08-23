@@ -4,11 +4,9 @@ import { Stream } from 'stream';
 import { uitools } from "./uitools"
 import { agent, runner, packagemanager, agenttools } from "@openiap/nodeagent";
 const util = require('util');
-const { spawn } = require('child_process');
 import * as os from "os"
 import * as path from "path";
 import * as fs from "fs"
-import * as cron from "node-cron";
 
 const exec = util.promisify(require('child_process').exec);
 const appName = 'assistant';
@@ -148,8 +146,6 @@ async function init() {
   client.onConnected = onConnected
   client.onDisconnected = onDisconnected
   uitools.notifyServerStatus('connecting', null, "");
-  // agent.on("runit", ( streamid, command, parameters, cwd, env) => {
-  // });
   agent.on("streamadded", (stream: any) => {
     log("stream added for " + stream.packageid + " with streamid " + stream.id);
     uitools.remoteRunPackage(stream.packageid, stream.id)
@@ -161,9 +157,26 @@ async function init() {
   agent.on("stream", (stream: any, message: Buffer) => {
     uitools.notifyStream(stream.id, message);
   });
-  await agent.init(client)
-  client.connect();
-
+  try {
+    var u = new URL(client.url);
+  } catch (error) {
+  }
+  try {
+    await agent.init(client)
+    var result = await agent.reloadAndParseConfig();
+    if(result == true) {
+      uitools.notifyServerStatus('connecting ' + result, null, "");
+      await client.connect();
+    } else {
+      uitools.notifyServerStatus('disconnected', null, "");
+    }
+  } catch (error) {
+    uitools.notifyServerStatus('disconnected', null, "");
+    uitools.log(JSON.stringify(error))
+    var message = error.message.split("\"").join("");
+    uitools.notifyServerStatus("onConnected error: " + message, client?.client?.user, u?.hostname);
+    uitools.notifyServerStatus('disconnected', null, "");
+  }
 }
 async function onConnected(client: openiap) {
   var u = new URL(client.url);
@@ -272,7 +285,7 @@ app.whenReady().then(async () => {
           fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(agent.assistantConfig));
           if (client.connected) client.Close();
           uitools.notifyConfig(agent.assistantConfig);
-          uitools.notifyServerStatus('connecting', null, u.hostname);
+          uitools.notifyServerStatus('connecting2', null, u.hostname);
           client.connect();
         } catch (error) {
           console.error(error);
@@ -319,7 +332,18 @@ app.whenReady().then(async () => {
   });
 });
 app.on("window-all-closed", () => {
+  console.log("window-all-closed");
+  try {
+    console.log("client close");
+    client.Close();    
+  } catch (error) {
+    
+  }
+  console.log("platform", process.platform);
   if (process.platform !== "darwin") {
+    console.log("app quit");
     app.quit();
+    // console.log("process exit");
+    // process.exit(0);
   }
 });

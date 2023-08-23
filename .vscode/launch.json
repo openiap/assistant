@@ -9,19 +9,12 @@
     ],
     "configurations": [
       {
-        "name": "Renderer",
-        "port": 9222,
-        "request": "attach",
-        "type": "chrome",
-        "webRoot": "${workspaceFolder}"
-      },
-      {
         "name": "Main",
         "type": "node",
         "request": "launch",
         "cwd": "${workspaceFolder}",
         "preLaunchTask": "tsc: watch - tsconfig.json",
-        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+        "runtimeExecutable": "${env:ELECTRON_OVERRIDE_DIST_PATH}/electron",
         "windows": {
           "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
         },
@@ -37,6 +30,14 @@
           "**/node_modules/@openiap/**",
           "/home/allan/code/nodeagent/**",
       ]
-      }
+      },
+      {
+        "name": "Renderer",
+        "port": 9222,
+        "request": "attach",
+        "type": "chrome",
+        "webRoot": "${workspaceFolder}"
+      },
+
     ]
   }
