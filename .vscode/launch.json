@@ -23,6 +23,7 @@
         "outputCapture": "std",
         "console": "integratedTerminal",
         "env": {
+          "otel_log_level": "info"
         },
         "resolveSourceMapLocations": [
           "${workspaceFolder}/**",
