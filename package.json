@@ -9,6 +9,7 @@
         "start": "npm run build && electron ./dist/main.js",
         "build": "tsc && electron-builder -wl --config electron-builder.yml",
         "buildl": "tsc && electron-builder -l",
+        "buildl2": "tsc && electron-builder -l --x64",
         "buildw": "tsc && electron-builder -w",
         "buildm": "tsc && electron-builder -m",
         "buildm2": "tsc && electron-builder -m --x64",
