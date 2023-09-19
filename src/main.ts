@@ -141,22 +141,26 @@ client.agent = "assistant"
 agent.exitonfailedschedule = false;
 var myproject = require(path.join(__dirname, "..", "package.json"));
 client.version = myproject.version;
+let firstinit = true;
 async function init() {
-  config.doDumpStack = true
-  client.onConnected = onConnected
-  client.onDisconnected = onDisconnected
-  uitools.notifyServerStatus('connecting', null, "");
-  agent.on("streamadded", (stream: any) => {
-    log("stream added for " + stream.packageid + " with streamid " + stream.id);
-    uitools.remoteRunPackage(stream.packageid, stream.id)
-    //uitools.notifyStream(stream.id, stream.packageid);
-  });
-  agent.on("streamremoved", (stream: any) => {
-    uitools.notifyStream(stream.id, null);
-  });
-  agent.on("stream", (stream: any, message: Buffer) => {
-    uitools.notifyStream(stream.id, message);
-  });
+  if(firstinit) {
+    config.doDumpStack = true
+    client.onConnected = onConnected
+    client.onDisconnected = onDisconnected
+    uitools.notifyServerStatus('connecting', null, "");
+    agent.on("streamadded", (stream: any) => {
+      log("stream added for " + stream.packageid + " with streamid " + stream.id);
+      uitools.remoteRunPackage(stream.packageid, stream.id)
+      //uitools.notifyStream(stream.id, stream.packageid);
+    });
+    agent.on("streamremoved", (stream: any) => {
+      uitools.notifyStream(stream.id, null);
+    });
+    agent.on("stream", (stream: any, message: Buffer) => {
+      uitools.notifyStream(stream.id, message);
+    });
+    firstinit = false;
+  }
   try {
     var u = new URL(client.url);
   } catch (error) {
@@ -216,7 +220,6 @@ async function onDisconnected(client: openiap) {
 };
 app.whenReady().then(async () => {
   uitools.createWindow();
-  await init();
   if (process.platform != "win32") {
     process.env.PATH = await getUserPath()
   }
@@ -286,6 +289,7 @@ app.whenReady().then(async () => {
           if (client.connected) client.Close();
           uitools.notifyConfig(agent.assistantConfig);
           uitools.notifyServerStatus('connecting2', null, u.hostname);
+          await init();
           client.connect();
         } catch (error) {
           console.error(error);
@@ -330,6 +334,7 @@ app.whenReady().then(async () => {
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) uitools.createWindow();
   });
+  await init();
 });
 app.on("window-all-closed", () => {
   console.log("window-all-closed");
