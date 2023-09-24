@@ -1,7 +1,7 @@
 {
     "name": "assistant",
     "main": "dist/main.js",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "description": "OpenIAP Desktop assistant",
     "scripts": {
         "watch": "tsc -w",
@@ -14,8 +14,6 @@
         "buildm": "tsc && electron-builder -m",
         "buildm2": "tsc && electron-builder -m --x64",
         "build2": "tsc && electron-builder -mwl --config electron-builder.yml",
-        "updateapidev": "npm uninstall @openiap/nodeapi && npm i openiap/nodeapi",
-        "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi",
         "updateagentlocal": "npm uninstall @openiap/nodeagent && npm i ../nodeagent",
         "updateagentdev": "npm uninstall @openiap/nodeagent && npm i openiap/nodeagent",
         "updateagent": "npm uninstall @openiap/nodeagent && npm i @openiap/nodeagent",
@@ -66,7 +64,7 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@openiap/nodeagent": "^0.0.83",
+        "@openiap/nodeagent": "^0.0.88",
         "adm-zip": "^0.5.10",
         "tar": "^6.1.13"
     },
