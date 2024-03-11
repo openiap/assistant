@@ -23,6 +23,7 @@ if (process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
 
 function log(message: string) {
   console.log(message);
+  uitools.log(message);
 }
 function enableAutoLaunch() {
   switch (os.platform()) {
@@ -38,7 +39,7 @@ Name=${appName}
 Comment[en_US]=${appName} auto-launch
 Comment=${appName} auto-launch`;
 
-      const linuxAutostartDir = path.join(os.homedir(), '.config', 'autostart');
+      const linuxAutostartDir = path.join(packagemanager.homedir(), '.config', 'autostart');
       if (!fs.existsSync(linuxAutostartDir)) {
         fs.mkdirSync(linuxAutostartDir, { recursive: true });
       }
@@ -60,7 +61,7 @@ Comment=${appName} auto-launch`;
 function disableAutoLaunch() {
   switch (os.platform()) {
     case 'linux':
-      const linuxAutostartFile = path.join(os.homedir(), '.config', 'autostart', `${appName}.desktop`);
+      const linuxAutostartFile = path.join(packagemanager.homedir(), '.config', 'autostart', `${appName}.desktop`);
       if (fs.existsSync(linuxAutostartFile)) {
         fs.unlinkSync(linuxAutostartFile);
       }
@@ -82,7 +83,7 @@ function isAutoLaunchEnabled() {
   return new Promise<boolean>((resolve, reject) => {
     switch (os.platform()) {
       case 'linux':
-        const linuxAutostartFile = path.join(os.homedir(), '.config', 'autostart', `${appName}.desktop`);
+        const linuxAutostartFile = path.join(packagemanager.homedir(), '.config', 'autostart', `${appName}.desktop`);
         fs.access(linuxAutostartFile, fs.constants.F_OK, (err) => {
           if (err) {
             resolve(false);
@@ -110,7 +111,6 @@ async function getUserPath() {
     const { stdout } = await exec('echo $PATH');
 
     // Parse the output of `echo $PATH` to extract the PATH value
-    // const path = stdout.trim().split(':')[1];
     const paths = stdout.trim().split(':');
     if (paths.indexOf('/opt/homebrew/bin') == -1) paths.push('/opt/homebrew/bin');
     if (paths.indexOf('/opt/homebrew/sbin') == -1) paths.push('/opt/homebrew/sbin');
@@ -124,13 +124,11 @@ async function getUserPath() {
 
     return paths.join(":");
   } catch (err) {
-    console.error('Failed to get user PATH:', err);
+    log('Failed to get user PATH:' + err.message);
     return null;
   }
 }
 
-// import { runner  } from "./runner";
-// import { packages } from "./packages"
 process.env.log_with_colors = "false"
 process.on('SIGINT', () => { process.exit(0) })
 process.on('SIGTERM', () => { process.exit(0) })
@@ -215,8 +213,7 @@ async function onDisconnected(client: openiap) {
   uitools.log('disconnected');
   uitools.notifyServerStatus('disconnected', null, "");
   reconnecttime = reconnecttime + 500;
-  console.log("disconnected, reconnect in " + reconnecttime + "ms");
-  // setTimeout(() => { client.connect(); }, reconnecttime);
+  log("disconnected, reconnect in " + reconnecttime + "ms");
 };
 app.whenReady().then(async () => {
   uitools.createWindow();
@@ -227,31 +224,44 @@ app.whenReady().then(async () => {
   var isEnabled = await isAutoLaunchEnabled();
   uitools.SetAutoLaunchState(isEnabled);
 
+  // add handler that will get called on ANY command from the renderer process
+  ipcMain.handle('', async (sender) => {
+    log("empty string")
+  });
+  ipcMain.handle('*', async (sender) => {
+    log("start * string")
+  });
   ipcMain.handle('ping', (sender) => {
     return 'pong';
   });
   ipcMain.handle('clear-cache', async (sender) => {
-    // if (runner.streams.length > 0) throw new Error("Cannot clear cache while streams are running");
-    // packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder);
-    // 
-    uitools.notifyPackages([]);
-    const packages = await agent.reloadpackages(true)
-    uitools.notifyPackages(packages);
-    for (let i = 0; i < runner.streams.length; i++) {
-      const s = runner.streams[i];
-      uitools.remoteRunPackage(s.packageid, s.id)
-      uitools.notifyStream(s.id, s.buffer);
-    }
+    try {
+      log("clear cache")
+      uitools.notifyPackages([]);
+      log("reload package!!")
+      const packages = await packagemanager.reloadpackages(client, agent.languages, true);
+      log("show packages")
+      uitools.notifyPackages(packages);
+      for (let i = 0; i < runner.streams.length; i++) {
+        const s = runner.streams[i];
+        log(s.packagename)
+        uitools.remoteRunPackage(s.packageid, s.id)
+        uitools.notifyStream(s.id, s.buffer);
+      }
+      log("complete")
+    } catch (error) {
+      updateErrorStatus("Error: " + error.message)
+  }
   });
   ipcMain.handle('signout', async (sender) => {
     if (runner.streams.length > 0) throw new Error("Cannot logout while streams are running");
-    packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder);
+    packagemanager.deleteDirectoryRecursiveSync(packagemanager.packagefolder());
     client.Close();
     client.jwt = "";
-    if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
-      var config = require(path.join(os.homedir(), ".openiap", "config.json"));
+    if (fs.existsSync(path.join(packagemanager.homedir(), ".openiap", "config.json"))) {
+      var config = require(path.join(packagemanager.homedir(), ".openiap", "config.json"));
       config.jwt = ""
-      fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(config));
+      fs.writeFileSync(path.join(packagemanager.homedir(), ".openiap", "config.json"), JSON.stringify(config));
     }
     uitools.notifyServerStatus('disconnected', null, "");
   });
@@ -279,20 +289,20 @@ app.whenReady().then(async () => {
             client.url = "ws://" + host + "/ws/v2";
           }
           agent.assistantConfig = { apiurl: client.url, jwt: client.jwt }
-          if (fs.existsSync(path.join(os.homedir(), ".openiap", "config.json"))) {
-            agent.assistantConfig = require(path.join(os.homedir(), ".openiap", "config.json"));
+          if (fs.existsSync(path.join(packagemanager.homedir(), ".openiap", "config.json"))) {
+            agent.assistantConfig = require(path.join(packagemanager.homedir(), ".openiap", "config.json"));
             agent.assistantConfig.apiurl = client.url;
             agent.assistantConfig.jwt = client.jwt;
           }
-          if (!fs.existsSync(path.join(os.homedir(), ".openiap"))) fs.mkdirSync(path.join(os.homedir(), ".openiap"));
-          fs.writeFileSync(path.join(os.homedir(), ".openiap", "config.json"), JSON.stringify(agent.assistantConfig));
+          if (!fs.existsSync(path.join(packagemanager.homedir(), ".openiap"))) fs.mkdirSync(path.join(packagemanager.homedir(), ".openiap"));
+          fs.writeFileSync(path.join(packagemanager.homedir(), ".openiap", "config.json"), JSON.stringify(agent.assistantConfig));
           if (client.connected) client.Close();
           uitools.notifyConfig(agent.assistantConfig);
           uitools.notifyServerStatus('connecting2', null, u.hostname);
           await init();
           client.connect();
         } catch (error) {
-          console.error(error);
+          log("error " + error.message)
         }
       }
     }, 1000);
@@ -320,6 +330,7 @@ app.whenReady().then(async () => {
     runner.kill(client, streamid);
   });
   ipcMain.handle('run-package', async (sender, id, streamid) => {
+    const runfolder = path.join(packagemanager.homedir(), ".openiap", "runtime", streamid);
     var stream = new Stream.Readable({
       read(size) { }
     });
@@ -327,9 +338,15 @@ app.whenReady().then(async () => {
     });
     stream.on('end', () => {
       uitools.notifyStream(streamid, null);
+      packagemanager.deleteDirectoryRecursiveSync(runfolder);
     });
     log("runapackage " + id + " with streamid " + streamid);
-    await packagemanager.runpackage(client, id, streamid, [], stream, false);
+    log("runfolder: " + runfolder)
+    try {
+      await packagemanager.runpackage(client, id, streamid, [], stream, false);
+    } catch (error) {
+      
+    }
   });
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) uitools.createWindow();
@@ -337,18 +354,16 @@ app.whenReady().then(async () => {
   await init();
 });
 app.on("window-all-closed", () => {
-  console.log("window-all-closed");
+  log("window-all-closed");
   try {
-    console.log("client close");
+    log("client close");
     client.Close();    
   } catch (error) {
     
   }
-  console.log("platform", process.platform);
+  log("platform:" + process.platform);
   if (process.platform !== "darwin") {
-    console.log("app quit");
+    log("app quit");
     app.quit();
-    // console.log("process exit");
-    // process.exit(0);
   }
 });

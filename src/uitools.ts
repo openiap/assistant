@@ -22,7 +22,6 @@ export class uitools {
       return;
     }
     if (!Buffer.isBuffer(buffer)) {
-      // buffer = utf8Encode.encode(buffer);
       buffer = Buffer.from(buffer + "\n");
     }
     this.mainWindow.webContents.executeJavaScript(`updateStream("${id}", ${JSON.stringify(buffer)})`);
@@ -53,7 +52,6 @@ export class uitools {
     if (this.mainWindow == null) return;
     if (this.mainWindow.webContents == null) return;
     if (!Buffer.isBuffer(message)) {
-      // buffer = utf8Encode.encode(buffer);
       buffer = Buffer.from(message);
     }
     this.mainWindow.webContents.executeJavaScript(`processlog(${JSON.stringify(buffer)})`);

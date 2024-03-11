@@ -24,7 +24,6 @@
         "runtimeArgs": ["--preserve-symlinks"],
         "args": ["./dist/main.js", "--remote-debugging-port=9222"],
         "outputCapture": "std",
-        "console": "integratedTerminal",
         "env": {
           "otel_log_level": "info"
         },
