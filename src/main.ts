@@ -22,8 +22,11 @@ if (process.env.APPIMAGE != null && process.env.APPIMAGE != "") {
 }
 
 function log(message: string) {
-  console.log(message);
-  uitools.log(message);
+  try {
+    console.log(message);
+    uitools.log(message);
+  } catch (error) {
+  }
 }
 function enableAutoLaunch() {
   switch (os.platform()) {
